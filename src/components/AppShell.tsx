@@ -3,13 +3,15 @@ import { NavLink } from "@/components/NavLink";
 import { useRetention } from "@/state/RetentionContext";
 import { ShieldAlert, Clock, History as HistoryIcon, Inbox, LayoutGrid, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   children: ReactNode;
 }
 
 export function AppShell({ children }: Props) {
-  const { accounts, intervened, snoozed, hideAll } = useRetention();
+  const { accounts, intervened, snoozed, hideAll, setHideAll } = useRetention();
+  const navigate = useNavigate();
   const needsActionCount = hideAll
     ? 0
     : accounts.filter((a) => !intervened.has(a.id) && !snoozed.has(a.id)).length;
