@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { AccountRow } from "@/components/AccountRow";
 import { AccountDetail } from "@/components/AccountDetail";
+import { AccountDetailSkeleton } from "@/components/AccountDetailSkeleton";
 import { toast } from "sonner";
 import { Bell, Search, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
