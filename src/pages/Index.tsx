@@ -1,12 +1,11 @@
-import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
 import { AccountRow } from "@/components/AccountRow";
 import { AccountDetail } from "@/components/AccountDetail";
 import { toast } from "sonner";
 import { Bell, Search, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRetention } from "@/state/RetentionContext";
-import { Navigate } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
