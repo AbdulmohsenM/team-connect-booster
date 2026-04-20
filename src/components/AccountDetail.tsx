@@ -2,7 +2,7 @@ import { Account, Action } from "@/data/atRiskAccounts";
 import { RiskScoreRing } from "./RiskBadge";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History } from "lucide-react";
+import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History, AlertOctagon, RotateCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { LogEntry } from "@/state/RetentionContext";
 
@@ -10,7 +10,8 @@ interface Props {
   account: Account;
   intervened: boolean;
   log: LogEntry[];
-  onIntervene: (actionId: string) => void;
+  /** Should resolve on success and reject on delivery failure. */
+  onIntervene: (actionId: string) => Promise<void> | void;
   onSnooze: () => void;
   onClose: () => void;
 }
@@ -35,18 +36,36 @@ const channelIcon = {
 export function AccountDetail({ account, intervened, log, onIntervene, onSnooze, onClose }: Props) {
   const [selected, setSelected] = useState<Action>(account.recommended);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<{ message: string; failedActionId: string } | null>(null);
 
   useEffect(() => {
     setSelected(account.recommended);
     setSending(false);
+    setError(null);
   }, [account.id]);
 
   const allActions = [account.recommended, ...account.alternates];
 
-  const handleSend = () => {
+  const handleSend = async () => {
     setSending(true);
-    setTimeout(() => onIntervene(selected.id), 700);
+    setError(null);
+    try {
+      await onIntervene(selected.id);
+      // Parent navigates away on success; nothing else to do here.
+    } catch (e) {
+      setSending(false);
+      setError({
+        message: e instanceof Error ? e.message : "Unknown delivery error",
+        failedActionId: selected.id,
+      });
+    }
   };
+
+  // Clear the error if the user picks a different action.
+  useEffect(() => {
+    if (error && selected.id !== error.failedActionId) setError(null);
+  }, [selected.id, error]);
+
 
   return (
     <div className="flex flex-col h-full bg-background">
