@@ -26,46 +26,83 @@ type Ctx = {
   intervened: Set<string>;
   snoozed: Map<string, SnoozeEntry>;
   logs: LogEntry[];
-  intervene: (accountId: string, actionId: string) => LogEntry;
+  /**
+   * Simulates a network round-trip. Resolves with the LogEntry on success.
+   * Rejects with an Error on failure (channel/delivery rejected by stub).
+   */
+  intervene: (accountId: string, actionId: string) => Promise<LogEntry>;
   snooze: (accountId: string, hours?: number) => void;
   unsnooze: (accountId: string) => void;
+  /** Force the next intervene() call to fail. Auto-clears after one use. */
+  forceFailNext: boolean;
+  setForceFailNext: (v: boolean) => void;
   hideAll: boolean; // dev toggle to demo empty state
   setHideAll: (v: boolean) => void;
 };
 
 const RetentionContext = createContext<Ctx | null>(null);
 
+// Failure rate for the prototype's stubbed delivery layer.
+// Low enough that the happy path dominates, high enough that the error
+// state is reachable by clicking around. Use forceFailNext for demos.
+const FAILURE_RATE = 0.12;
+const SEND_LATENCY_MS = 700;
+
 export function RetentionProvider({ children }: { children: ReactNode }) {
   const [intervened, setIntervened] = useState<Set<string>>(new Set());
   const [snoozed, setSnoozed] = useState<Map<string, SnoozeEntry>>(new Map());
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [hideAll, setHideAll] = useState(false);
+  const [forceFailNext, setForceFailNext] = useState(false);
 
-  const intervene = useCallback((accountId: string, actionId: string): LogEntry => {
-    const acc = seed.find((a) => a.id === accountId)!;
-    const action = [acc.recommended, ...acc.alternates].find((x) => x.id === actionId)!;
-    const entry: LogEntry = {
-      id: `${accountId}-${Date.now()}`,
-      accountId,
-      accountTeam: acc.team,
-      ownerName: acc.owner.name,
-      actionId,
-      actionTitle: action.title,
-      channel: action.channel,
-      at: Date.now(),
-      by: "Jordan Kim",
-      status: "Awaiting response",
-    };
-    setLogs((prev) => [entry, ...prev]);
-    setIntervened((prev) => new Set(prev).add(accountId));
-    setSnoozed((prev) => {
-      if (!prev.has(accountId)) return prev;
-      const m = new Map(prev);
-      m.delete(accountId);
-      return m;
-    });
-    return entry;
-  }, []);
+  const intervene = useCallback(
+    (accountId: string, actionId: string): Promise<LogEntry> => {
+      const acc = seed.find((a) => a.id === accountId)!;
+      const action = [acc.recommended, ...acc.alternates].find((x) => x.id === actionId)!;
+
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const shouldFail = forceFailNext || Math.random() < FAILURE_RATE;
+          if (shouldFail) {
+            if (forceFailNext) setForceFailNext(false);
+            reject(
+              new Error(
+                action.channel === "email"
+                  ? "Email provider rejected the request (550). The recipient mailbox may be unreachable."
+                  : action.channel === "Slack message"
+                    ? "Slack delivery failed — workspace token expired."
+                    : "In-app delivery failed — the recipient session is offline.",
+              ),
+            );
+            return;
+          }
+
+          const entry: LogEntry = {
+            id: `${accountId}-${Date.now()}`,
+            accountId,
+            accountTeam: acc.team,
+            ownerName: acc.owner.name,
+            actionId,
+            actionTitle: action.title,
+            channel: action.channel,
+            at: Date.now(),
+            by: "Jordan Kim",
+            status: "Awaiting response",
+          };
+          setLogs((prev) => [entry, ...prev]);
+          setIntervened((prev) => new Set(prev).add(accountId));
+          setSnoozed((prev) => {
+            if (!prev.has(accountId)) return prev;
+            const m = new Map(prev);
+            m.delete(accountId);
+            return m;
+          });
+          resolve(entry);
+        }, SEND_LATENCY_MS);
+      });
+    },
+    [forceFailNext],
+  );
 
   const snooze = useCallback((accountId: string, hours = 48) => {
     setSnoozed((prev) => {
@@ -89,8 +126,20 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Ctx>(
-    () => ({ accounts: seed, intervened, snoozed, logs, intervene, snooze, unsnooze, hideAll, setHideAll }),
-    [intervened, snoozed, logs, intervene, snooze, unsnooze, hideAll],
+    () => ({
+      accounts: seed,
+      intervened,
+      snoozed,
+      logs,
+      intervene,
+      snooze,
+      unsnooze,
+      forceFailNext,
+      setForceFailNext,
+      hideAll,
+      setHideAll,
+    }),
+    [intervened, snoozed, logs, intervene, snooze, unsnooze, forceFailNext, hideAll],
   );
 
   return <RetentionContext.Provider value={value}>{children}</RetentionContext.Provider>;
