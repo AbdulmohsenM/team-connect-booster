@@ -22,6 +22,17 @@ interface Props {
   onClose: () => void;
 }
 
+function formatRelative(ts: number) {
+  const diff = Date.now() - ts;
+  const s = Math.max(1, Math.floor(diff / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
 const channelIcon = {
   "in-app nudge": Sparkles,
   email: Mail,
@@ -164,6 +175,35 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
             })}
           </div>
         </section>
+
+        {/* INTERVENTION HISTORY */}
+        {log.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <History className="size-4 text-success" />
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Intervention history</h3>
+            </div>
+            <ol className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+              {log.map((entry, i) => {
+                const Icon = channelIcon[entry.channel];
+                return (
+                  <li key={i} className="flex items-start gap-3 px-4 py-3">
+                    <div className="size-7 shrink-0 rounded-lg bg-success-soft text-success flex items-center justify-center">
+                      <Icon className="size-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{entry.actionTitle}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Sent via {entry.channel} · by {entry.by} · {formatRelative(entry.at)}
+                      </p>
+                    </div>
+                    <CheckCircle2 className="size-4 text-success shrink-0 mt-1" />
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
       </div>
 
       {/* Action bar */}
