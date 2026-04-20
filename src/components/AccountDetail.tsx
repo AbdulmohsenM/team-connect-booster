@@ -2,12 +2,21 @@ import { Account, Action } from "@/data/atRiskAccounts";
 import { RiskScoreRing } from "./RiskBadge";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight } from "lucide-react";
+import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History } from "lucide-react";
 import { useState, useEffect } from "react";
+
+export type LogEntry = {
+  actionId: string;
+  actionTitle: string;
+  channel: Action["channel"];
+  at: number;
+  by: string;
+};
 
 interface Props {
   account: Account;
   intervened: boolean;
+  log: LogEntry[];
   onIntervene: (actionId: string) => void;
   onSnooze: () => void;
   onClose: () => void;
@@ -19,7 +28,7 @@ const channelIcon = {
   "Slack message": MessageSquare,
 };
 
-export function AccountDetail({ account, intervened, onIntervene, onSnooze, onClose }: Props) {
+export function AccountDetail({ account, intervened, log, onIntervene, onSnooze, onClose }: Props) {
   const [selected, setSelected] = useState<Action>(account.recommended);
   const [sending, setSending] = useState(false);
 
