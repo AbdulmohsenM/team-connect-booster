@@ -22,9 +22,12 @@ export default function AllClear() {
             <CheckCircle2 className="size-10 text-success" />
           </div>
           <p className="text-xs font-semibold uppercase tracking-wider text-success">Inbox zero</p>
-          <h1 className="text-3xl font-semibold mt-2">No at-risk accounts right now</h1>
-          <p className="text-sm text-muted-foreground mt-3 max-w-lg mx-auto">
-            Every account flagged by the risk model has been actioned or snoozed. Plansmith will ping you when a new account crosses the threshold — usually within a few hours.
+          <h1 className="text-3xl font-semibold mt-2">You're all caught up.</h1>
+          <p className="text-base text-muted-foreground mt-3 max-w-lg mx-auto">
+            No accounts require action right now.
+          </p>
+          <p className="text-sm text-muted-foreground/80 mt-3 max-w-lg mx-auto">
+            Plansmith will ping you when a new account crosses the risk threshold — usually within a few hours.
           </p>
         </div>
 

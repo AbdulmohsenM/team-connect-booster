@@ -161,18 +161,22 @@ const Index = () => {
       </section>
 
       <section className="flex-1 min-w-0">
-        <AccountDetail
-          key={active.id}
-          account={active}
-          intervened={intervened.has(active.id)}
-          log={activeLogs}
-          onIntervene={handleIntervene}
-          onSnooze={handleSnooze}
-          onClose={() => {
-            const next = visible.find((a) => a.id !== active.id);
-            if (next) setActiveId(next.id);
-          }}
-        />
+        {loadingDetail ? (
+          <AccountDetailSkeleton />
+        ) : (
+          <AccountDetail
+            key={active.id}
+            account={active}
+            intervened={intervened.has(active.id)}
+            log={activeLogs}
+            onIntervene={handleIntervene}
+            onSnooze={handleSnooze}
+            onClose={() => {
+              const next = visible.find((a) => a.id !== active.id);
+              if (next) setActiveId(next.id);
+            }}
+          />
+        )}
       </section>
     </>
   );
