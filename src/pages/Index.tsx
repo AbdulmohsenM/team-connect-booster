@@ -50,7 +50,9 @@ const Index = () => {
   const handleSnooze = () => {
     setSnoozed((prev) => new Set(prev).add(active.id));
     toast(`Snoozed ${active.team} for 48h`, { description: "We'll resurface if risk worsens." });
-    const next = visible.find((a) => a.id !== active.id && !intervened.has(a.id));
+    const next = seed
+      .filter((a) => a.id !== active.id && !snoozed.has(a.id) && !intervened.has(a.id))
+      .sort((a, b) => b.riskScore - a.riskScore)[0];
     if (next) setActiveId(next.id);
   };
 
