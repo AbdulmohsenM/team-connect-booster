@@ -206,14 +206,14 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
           </div>
         </section>
 
-        {/* INTERVENTION HISTORY — PM workflow timeline */}
+        {/* ───────────── SUPPORTING: Activity & ownership (demoted) ───────────── */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <History className="size-4 text-foreground" />
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activity & ownership</h3>
+          <div className="flex items-center justify-between mb-2.5 pt-2 border-t border-border/60">
+            <div className="flex items-center gap-2 mt-3">
+              <History className="size-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Activity & ownership</h3>
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs mt-3">
               <span className="text-muted-foreground">Owner</span>
               <div className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5">
                 <div className="size-4 rounded-full primary-gradient text-primary-foreground text-[9px] font-semibold flex items-center justify-center">JK</div>
