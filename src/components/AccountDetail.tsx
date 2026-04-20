@@ -2,7 +2,7 @@ import { Account, Action } from "@/data/atRiskAccounts";
 import { RiskScoreRing } from "./RiskBadge";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History } from "lucide-react";
+import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History, AlertOctagon, RotateCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { LogEntry } from "@/state/RetentionContext";
 
@@ -10,7 +10,8 @@ interface Props {
   account: Account;
   intervened: boolean;
   log: LogEntry[];
-  onIntervene: (actionId: string) => void;
+  /** Should resolve on success and reject on delivery failure. */
+  onIntervene: (actionId: string) => Promise<void> | void;
   onSnooze: () => void;
   onClose: () => void;
 }
@@ -35,18 +36,36 @@ const channelIcon = {
 export function AccountDetail({ account, intervened, log, onIntervene, onSnooze, onClose }: Props) {
   const [selected, setSelected] = useState<Action>(account.recommended);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<{ message: string; failedActionId: string } | null>(null);
 
   useEffect(() => {
     setSelected(account.recommended);
     setSending(false);
+    setError(null);
   }, [account.id]);
 
   const allActions = [account.recommended, ...account.alternates];
 
-  const handleSend = () => {
+  const handleSend = async () => {
     setSending(true);
-    setTimeout(() => onIntervene(selected.id), 700);
+    setError(null);
+    try {
+      await onIntervene(selected.id);
+      // Parent navigates away on success; nothing else to do here.
+    } catch (e) {
+      setSending(false);
+      setError({
+        message: e instanceof Error ? e.message : "Unknown delivery error",
+        failedActionId: selected.id,
+      });
+    }
   };
+
+  // Clear the error if the user picks a different action.
+  useEffect(() => {
+    if (error && selected.id !== error.failedActionId) setError(null);
+  }, [selected.id, error]);
+
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -253,7 +272,49 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
       </div>
 
       {/* Action bar */}
-      <div className="border-t border-border bg-card px-7 py-4">
+      <div className="border-t border-border bg-card px-7 py-4 space-y-3">
+        {/* Error state — exact required copy + retry / pick another action */}
+        {error && !intervened && (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-danger-soft px-4 py-3"
+          >
+            <div className="size-8 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertOctagon className="size-4 text-destructive" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-destructive">
+                Intervention failed to send. Please retry or choose another action.
+              </p>
+              <p className="text-xs text-destructive/80 mt-0.5 truncate">{error.message}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => {
+                  setError(null);
+                  // Scroll-into-view nudge: focus the next non-failed action.
+                  const next = allActions.find((a) => a.id !== error.failedActionId);
+                  if (next) setSelected(next);
+                }}
+              >
+                Choose another action
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={handleSend}
+                disabled={sending}
+              >
+                <RotateCw className={cn("size-3.5", sending && "animate-spin")} />
+                {sending ? "Retrying…" : "Retry"}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {intervened ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-success">

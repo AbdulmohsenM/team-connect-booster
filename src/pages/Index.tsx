@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { AccountRow } from "@/components/AccountRow";
 import { AccountDetail } from "@/components/AccountDetail";
+import { AccountDetailSkeleton } from "@/components/AccountDetailSkeleton";
 import { toast } from "sonner";
 import { Bell, Search, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,16 @@ const Index = () => {
 
   const [filter, setFilter] = useState<"needs-action" | "snoozed" | "intervened">("needs-action");
   const [activeId, setActiveId] = useState<string | null>(needsAction[0]?.id ?? accounts[0]?.id ?? null);
+  // Brief loading state when switching accounts (simulates fetching the
+  // full risk profile + signals + recommended action). Keyed off activeId.
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (!activeId) return;
+    setLoadingDetail(true);
+    const t = setTimeout(() => setLoadingDetail(false), 500);
+    return () => clearTimeout(t);
+  }, [activeId]);
 
   // If hideAll dev toggle is on, show empty state
   if (hideAll || (needsAction.length === 0 && intervened.size === 0 && snoozed.size === 0)) {
@@ -44,8 +55,9 @@ const Index = () => {
   // Logs scoped to active account
   const activeLogs = logs.filter((l) => l.accountId === active.id);
 
-  const handleIntervene = (actionId: string) => {
-    const entry = intervene(active.id, actionId);
+  // Throws if delivery fails so AccountDetail can show its inline error state.
+  const handleIntervene = async (actionId: string) => {
+    const entry = await intervene(active.id, actionId);
     navigate(`/confirmation/${entry.id}`);
   };
 
@@ -149,18 +161,22 @@ const Index = () => {
       </section>
 
       <section className="flex-1 min-w-0">
-        <AccountDetail
-          key={active.id}
-          account={active}
-          intervened={intervened.has(active.id)}
-          log={activeLogs}
-          onIntervene={handleIntervene}
-          onSnooze={handleSnooze}
-          onClose={() => {
-            const next = visible.find((a) => a.id !== active.id);
-            if (next) setActiveId(next.id);
-          }}
-        />
+        {loadingDetail ? (
+          <AccountDetailSkeleton />
+        ) : (
+          <AccountDetail
+            key={active.id}
+            account={active}
+            intervened={intervened.has(active.id)}
+            log={activeLogs}
+            onIntervene={handleIntervene}
+            onSnooze={handleSnooze}
+            onClose={() => {
+              const next = visible.find((a) => a.id !== active.id);
+              if (next) setActiveId(next.id);
+            }}
+          />
+        )}
       </section>
     </>
   );
