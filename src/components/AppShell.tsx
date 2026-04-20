@@ -69,9 +69,13 @@ export function AppShell({ children }: Props) {
               </span>
             )}
           </NavLink>
-          <NavLink to="/empty-preview" className={navBase} activeClassName={navActive}>
+          <button
+            type="button"
+            onClick={() => { setHideAll(true); navigate("/all-clear"); }}
+            className={cn(navBase, "w-full text-left")}
+          >
             <span className="flex items-center gap-3"><CheckCircle2 className="size-4" /> All-clear preview</span>
-          </NavLink>
+          </button>
         </nav>
 
         <div className="mt-auto px-3 py-4 border-t border-sidebar-border">
