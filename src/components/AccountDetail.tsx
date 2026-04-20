@@ -90,112 +90,130 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-7 py-6 space-y-6">
-        {/* WHY — risk reason */}
+      <div className="flex-1 overflow-y-auto px-7 py-7 space-y-8">
+        {/* ───────────── HERO: Suggested intervention ───────────── */}
+        {/* Promoted to the top, elevated surface, larger type, dominant action cards. */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="size-4 text-warning" />
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Why they're at risk</h3>
-          </div>
-          <div className="rounded-xl risk-gradient border border-warning/20 p-5">
-            <p className="font-medium text-foreground">{account.topReason}</p>
-            <ul className="mt-4 space-y-2.5">
-              {account.signals.map((s, i) => (
-                <li key={i} className="flex gap-3 text-sm">
-                  <span className={cn("mt-1.5 size-1.5 rounded-full shrink-0",
-                    s.weight === "high" && "bg-destructive",
-                    s.weight === "med" && "bg-warning",
-                    s.weight === "low" && "bg-muted-foreground"
-                  )} />
-                  <div>
-                    <span className="font-medium text-foreground">{s.label}</span>
-                    <span className="text-muted-foreground"> — {s.detail}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* QUOTE — real user voice */}
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <Quote className="size-4 text-primary" />
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">In their words</h3>
-          </div>
-          <blockquote className="rounded-xl border-l-4 border-primary bg-accent/40 px-5 py-4">
-            <p className="text-foreground italic leading-relaxed">"{account.quote.text}"</p>
-            <footer className="mt-3 text-xs text-muted-foreground">
-              — {account.quote.source} · <span className="italic">{account.quote.channel}</span>
-            </footer>
-          </blockquote>
-        </section>
-
-        {/* SUGGESTED ACTION */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Suggested intervention</h3>
+          <div className="flex items-end justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <Sparkles className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold leading-tight">Suggested intervention</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Pick a channel and send — typically resolves in &lt;48h.</p>
+              </div>
             </div>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="size-3" /> {selected.expectedLift}
-            </span>
+            <div className="flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success">
+              <TrendingUp className="size-3.5" />
+              <span className="tabular-nums">{selected.expectedLift}</span>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {allActions.map((a) => {
-              const Icon = channelIcon[a.channel];
-              const isSelected = selected.id === a.id;
-              const isRecommended = a.id === account.recommended.id;
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => setSelected(a)}
-                  className={cn(
-                    "w-full text-left rounded-xl border p-4 transition-all",
-                    isSelected ? "border-primary bg-accent/40 ring-2 ring-primary/15" : "border-border bg-card hover:border-primary/30"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={cn("size-8 shrink-0 rounded-lg flex items-center justify-center",
-                      isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    )}>
-                      <Icon className="size-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{a.title}</span>
-                        {isRecommended && (
-                          <span className="text-[10px] uppercase font-semibold tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            Recommended
-                          </span>
-                        )}
+          <div className="rounded-2xl border border-primary/20 bg-accent/30 p-4 shadow-card">
+            <div className="space-y-2">
+              {allActions.map((a) => {
+                const Icon = channelIcon[a.channel];
+                const isSelected = selected.id === a.id;
+                const isRecommended = a.id === account.recommended.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setSelected(a)}
+                    className={cn(
+                      "w-full text-left rounded-xl border p-5 transition-all",
+                      isSelected
+                        ? "border-primary bg-card ring-2 ring-primary/20 shadow-card"
+                        : "border-transparent bg-card/60 hover:bg-card hover:border-primary/20"
+                    )}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={cn(
+                        "size-10 shrink-0 rounded-lg flex items-center justify-center transition-colors",
+                        isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        <Icon className="size-5" />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 capitalize">via {a.channel}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-[15px] leading-snug">{a.title}</span>
+                          {isRecommended && (
+                            <span className="text-[10px] uppercase font-semibold tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              Recommended
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 capitalize">via {a.channel}</p>
+                      </div>
+                      <ChevronRight className={cn(
+                        "size-5 shrink-0 mt-1 transition-transform",
+                        isSelected ? "text-primary rotate-90" : "text-muted-foreground"
+                      )} />
                     </div>
-                    <ChevronRight className={cn("size-4 shrink-0 mt-1 transition-transform", isSelected ? "text-primary rotate-90" : "text-muted-foreground")} />
-                  </div>
-                  {isSelected && (
-                    <div className="mt-4 ml-11 rounded-lg bg-background border border-border p-3.5">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Message preview</p>
-                      <p className="text-sm text-foreground leading-relaxed">{a.preview}</p>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                    {isSelected && (
+                      <div className="mt-4 ml-14 rounded-lg bg-background border border-border p-4">
+                        <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Message preview</p>
+                        <p className="text-sm text-foreground leading-relaxed">{a.preview}</p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        {/* INTERVENTION HISTORY — PM workflow timeline */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <History className="size-4 text-foreground" />
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activity & ownership</h3>
+        {/* ───────────── CONTEXT: Why + Quote (paired, equal weight, demoted) ───────────── */}
+        <section className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+          {/* Why — risk reason */}
+          <div className="xl:col-span-3">
+            <div className="flex items-center gap-2 mb-2.5">
+              <AlertTriangle className="size-3.5 text-warning" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Why they're at risk</h3>
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="rounded-xl risk-gradient border border-warning/20 p-4 h-full">
+              <p className="font-medium text-sm text-foreground">{account.topReason}</p>
+              <ul className="mt-3 space-y-2">
+                {account.signals.map((s, i) => (
+                  <li key={i} className="flex gap-2.5 text-xs">
+                    <span className={cn("mt-1.5 size-1.5 rounded-full shrink-0",
+                      s.weight === "high" && "bg-destructive",
+                      s.weight === "med" && "bg-warning",
+                      s.weight === "low" && "bg-muted-foreground"
+                    )} />
+                    <div className="leading-relaxed">
+                      <span className="font-medium text-foreground">{s.label}</span>
+                      <span className="text-muted-foreground"> — {s.detail}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Quote — real user voice */}
+          <div className="xl:col-span-2">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Quote className="size-3.5 text-primary" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">In their words</h3>
+            </div>
+            <blockquote className="rounded-xl border-l-4 border-primary bg-accent/30 px-4 py-3.5 h-full">
+              <p className="text-sm text-foreground italic leading-relaxed">"{account.quote.text}"</p>
+              <footer className="mt-2.5 text-[11px] text-muted-foreground">
+                — {account.quote.source} · <span className="italic">{account.quote.channel}</span>
+              </footer>
+            </blockquote>
+          </div>
+        </section>
+
+        {/* ───────────── SUPPORTING: Activity & ownership (demoted) ───────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-2.5 pt-2 border-t border-border/60">
+            <div className="flex items-center gap-2 mt-3">
+              <History className="size-3.5 text-muted-foreground" />
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Activity & ownership</h3>
+            </div>
+            <div className="flex items-center gap-2 text-xs mt-3">
               <span className="text-muted-foreground">Owner</span>
               <div className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5">
                 <div className="size-4 rounded-full primary-gradient text-primary-foreground text-[9px] font-semibold flex items-center justify-center">JK</div>
