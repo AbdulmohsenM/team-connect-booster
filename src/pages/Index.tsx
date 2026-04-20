@@ -10,15 +10,24 @@ const Index = () => {
   const [intervened, setIntervened] = useState<Set<string>>(new Set());
   const [snoozed, setSnoozed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string>(seed[0].id);
-  const [filter, setFilter] = useState<"all" | "critical" | "rising">("all");
+  const [filter, setFilter] = useState<"needs-action" | "snoozed" | "intervened">("needs-action");
   const [logs, setLogs] = useState<Record<string, LogEntry[]>>({});
+
+  const counts = useMemo(() => ({
+    "needs-action": seed.filter((a) => !snoozed.has(a.id) && !intervened.has(a.id)).length,
+    snoozed: seed.filter((a) => snoozed.has(a.id)).length,
+    intervened: seed.filter((a) => intervened.has(a.id)).length,
+  }), [snoozed, intervened]);
 
   const visible = useMemo(() => {
     return seed
-      .filter((a) => !snoozed.has(a.id))
-      .filter((a) => filter === "all" || (filter === "critical" && a.riskScore >= 80) || (filter === "rising" && a.trend === "up"))
+      .filter((a) => {
+        if (filter === "needs-action") return !snoozed.has(a.id) && !intervened.has(a.id);
+        if (filter === "snoozed") return snoozed.has(a.id);
+        return intervened.has(a.id);
+      })
       .sort((a, b) => b.riskScore - a.riskScore);
-  }, [snoozed, filter]);
+  }, [snoozed, intervened, filter]);
 
   const active = seed.find((a) => a.id === activeId)!;
 
@@ -41,7 +50,9 @@ const Index = () => {
   const handleSnooze = () => {
     setSnoozed((prev) => new Set(prev).add(active.id));
     toast(`Snoozed ${active.team} for 48h`, { description: "We'll resurface if risk worsens." });
-    const next = visible.find((a) => a.id !== active.id && !intervened.has(a.id));
+    const next = seed
+      .filter((a) => a.id !== active.id && !snoozed.has(a.id) && !intervened.has(a.id))
+      .sort((a, b) => b.riskScore - a.riskScore)[0];
     if (next) setActiveId(next.id);
   };
 
@@ -126,32 +137,47 @@ const Index = () => {
                 <Filter className="size-3.5" />
               </button>
             </div>
-            <div className="mt-3 flex items-center gap-1">
+            <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
               {([
-                { id: "all", label: `All ${visible.length === seed.length ? "" : ""}` },
-                { id: "critical", label: "Critical" },
-                { id: "rising", label: "Rising" },
-              ] as const).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setFilter(t.id)}
-                  className={cn(
-                    "text-xs px-2.5 py-1 rounded-full font-medium transition-colors",
-                    filter === t.id
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
+                { id: "needs-action", label: "Needs action", tone: "danger" as const },
+                { id: "snoozed", label: "Snoozed", tone: "muted" as const },
+                { id: "intervened", label: "Intervened", tone: "success" as const },
+              ]).map((t) => {
+                const isActive = filter === t.id;
+                const count = counts[t.id as keyof typeof counts];
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setFilter(t.id as typeof filter)}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 text-xs px-2 py-1.5 rounded-md font-medium transition-colors",
+                      isActive
+                        ? "bg-background text-foreground shadow-card"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span>{t.label}</span>
+                    <span className={cn(
+                      "min-w-[18px] px-1 text-[10px] font-semibold rounded-full leading-tight py-0.5 tabular-nums",
+                      isActive && t.tone === "danger" && "bg-danger-soft text-destructive",
+                      isActive && t.tone === "muted" && "bg-muted-foreground/15 text-muted-foreground",
+                      isActive && t.tone === "success" && "bg-success-soft text-success",
+                      !isActive && "bg-background/60 text-muted-foreground"
+                    )}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </header>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {visible.length === 0 && (
               <div className="text-center py-12 text-sm text-muted-foreground">
-                No accounts match this filter.
+                {filter === "needs-action" && "All clear — every at-risk account has been actioned or snoozed."}
+                {filter === "snoozed" && "Nothing snoozed."}
+                {filter === "intervened" && "No interventions sent yet. Open an account to send one."}
               </div>
             )}
             {visible.map((a) => (
