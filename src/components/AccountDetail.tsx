@@ -176,34 +176,87 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
           </div>
         </section>
 
-        {/* INTERVENTION HISTORY */}
-        {log.length > 0 && (
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <History className="size-4 text-success" />
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Intervention history</h3>
+        {/* INTERVENTION HISTORY — PM workflow timeline */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <History className="size-4 text-foreground" />
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activity & ownership</h3>
             </div>
-            <ol className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Owner</span>
+              <div className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5">
+                <div className="size-4 rounded-full primary-gradient text-primary-foreground text-[9px] font-semibold flex items-center justify-center">JK</div>
+                <span className="font-medium">Jordan Kim</span>
+                <span className="text-muted-foreground">· you</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <ol className="relative">
+              {/* New: live intervention entries */}
               {log.map((entry, i) => {
                 const Icon = channelIcon[entry.channel];
+                const isYou = entry.by === "Jordan Kim";
                 return (
-                  <li key={i} className="flex items-start gap-3 px-4 py-3">
-                    <div className="size-7 shrink-0 rounded-lg bg-success-soft text-success flex items-center justify-center">
-                      <Icon className="size-3.5" />
+                  <li key={`log-${i}`} className="flex gap-3 px-4 py-3.5 border-b border-border last:border-b-0 bg-success-soft/30">
+                    <div className="relative shrink-0">
+                      <div className="size-8 rounded-full primary-gradient text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
+                        {entry.by.split(" ").map((n) => n[0]).join("")}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 size-4 rounded-full bg-success text-success-foreground flex items-center justify-center ring-2 ring-card">
+                        <Icon className="size-2.5" />
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{entry.actionTitle}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Sent via {entry.channel} · by {entry.by} · {formatRelative(entry.at)}
+                      <p className="text-sm">
+                        <span className="font-semibold">{isYou ? "You" : entry.by}</span>
+                        <span className="text-muted-foreground"> sent intervention · </span>
+                        <span className="text-muted-foreground">{formatRelative(entry.at)}</span>
                       </p>
+                      <p className="text-sm text-foreground mt-0.5">{entry.actionTitle}</p>
+                      <p className="text-xs text-muted-foreground mt-1 capitalize">via {entry.channel} · awaiting response</p>
                     </div>
-                    <CheckCircle2 className="size-4 text-success shrink-0 mt-1" />
                   </li>
                 );
               })}
+
+              {/* Seed: prior PM workflow events to make it read as collaborative work */}
+              <li className="flex gap-3 px-4 py-3.5 border-b border-border">
+                <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
+                  AI
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm">
+                    <span className="font-semibold">Risk model</span>
+                    <span className="text-muted-foreground"> flagged this account · {Math.max(2, account.daysSinceSignup - 4)}h ago</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Score crossed threshold ({account.riskScore}). Routed to Jordan Kim (Growth PM).</p>
+                </div>
+              </li>
+              <li className="flex gap-3 px-4 py-3.5">
+                <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
+                  CS
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm">
+                    <span className="font-semibold">Casey Singh</span>
+                    <span className="text-muted-foreground"> (CSM) added a note · 1d ago</span>
+                  </p>
+                  <p className="text-xs text-foreground mt-0.5 italic">"Saw the same pattern on three other accounts this week. Worth a tighter playbook."</p>
+                </div>
+              </li>
             </ol>
-          </section>
-        )}
+
+            {log.length > 0 && (
+              <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-border bg-muted/40 text-xs">
+                <span className="text-muted-foreground">Next: follow up if no response in 48h</span>
+                <button className="font-medium text-primary hover:underline">Schedule follow-up</button>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
       {/* Action bar */}
