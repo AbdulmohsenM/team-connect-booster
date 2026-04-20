@@ -55,8 +55,9 @@ const Index = () => {
   // Logs scoped to active account
   const activeLogs = logs.filter((l) => l.accountId === active.id);
 
-  const handleIntervene = (actionId: string) => {
-    const entry = intervene(active.id, actionId);
+  // Throws if delivery fails so AccountDetail can show its inline error state.
+  const handleIntervene = async (actionId: string) => {
+    const entry = await intervene(active.id, actionId);
     navigate(`/confirmation/${entry.id}`);
   };
 
