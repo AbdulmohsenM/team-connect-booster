@@ -4,14 +4,7 @@ import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History } from "lucide-react";
 import { useState, useEffect } from "react";
-
-export type LogEntry = {
-  actionId: string;
-  actionTitle: string;
-  channel: Action["channel"];
-  at: number;
-  by: string;
-};
+import type { LogEntry } from "@/state/RetentionContext";
 
 interface Props {
   account: Account;
