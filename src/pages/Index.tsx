@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { accounts as seed } from "@/data/atRiskAccounts";
 import { AccountRow } from "@/components/AccountRow";
-import { AccountDetail } from "@/components/AccountDetail";
+import { AccountDetail, type LogEntry } from "@/components/AccountDetail";
 import { toast } from "sonner";
 import { LayoutGrid, Inbox, Users, Bell, Search, Filter, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const Index = () => {
   const [snoozed, setSnoozed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string>(seed[0].id);
   const [filter, setFilter] = useState<"all" | "critical" | "rising">("all");
+  const [logs, setLogs] = useState<Record<string, LogEntry[]>>({});
 
   const visible = useMemo(() => {
     return seed
@@ -22,8 +23,16 @@ const Index = () => {
   const active = seed.find((a) => a.id === activeId)!;
 
   const handleIntervene = (actionId: string) => {
-    setIntervened((prev) => new Set(prev).add(active.id));
     const action = [active.recommended, ...active.alternates].find((x) => x.id === actionId)!;
+    const entry: LogEntry = {
+      actionId,
+      actionTitle: action.title,
+      channel: action.channel,
+      at: Date.now(),
+      by: "Jordan Kim",
+    };
+    setLogs((prev) => ({ ...prev, [active.id]: [entry, ...(prev[active.id] ?? [])] }));
+    setIntervened((prev) => new Set(prev).add(active.id));
     toast.success(`Intervention sent to ${active.owner.name}`, {
       description: `${action.title} · via ${action.channel}`,
     });
@@ -35,6 +44,7 @@ const Index = () => {
     const next = visible.find((a) => a.id !== active.id && !intervened.has(a.id));
     if (next) setActiveId(next.id);
   };
+
 
   const total = seed.length;
   const intervenedCount = intervened.size;
