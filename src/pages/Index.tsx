@@ -172,6 +172,7 @@ const Index = () => {
             key={active.id}
             account={active}
             intervened={intervened.has(active.id)}
+            log={logs[active.id] ?? []}
             onIntervene={handleIntervene}
             onSnooze={handleSnooze}
             onClose={() => {
