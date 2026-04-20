@@ -10,15 +10,24 @@ const Index = () => {
   const [intervened, setIntervened] = useState<Set<string>>(new Set());
   const [snoozed, setSnoozed] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string>(seed[0].id);
-  const [filter, setFilter] = useState<"all" | "critical" | "rising">("all");
+  const [filter, setFilter] = useState<"needs-action" | "snoozed" | "intervened">("needs-action");
   const [logs, setLogs] = useState<Record<string, LogEntry[]>>({});
+
+  const counts = useMemo(() => ({
+    "needs-action": seed.filter((a) => !snoozed.has(a.id) && !intervened.has(a.id)).length,
+    snoozed: seed.filter((a) => snoozed.has(a.id)).length,
+    intervened: seed.filter((a) => intervened.has(a.id)).length,
+  }), [snoozed, intervened]);
 
   const visible = useMemo(() => {
     return seed
-      .filter((a) => !snoozed.has(a.id))
-      .filter((a) => filter === "all" || (filter === "critical" && a.riskScore >= 80) || (filter === "rising" && a.trend === "up"))
+      .filter((a) => {
+        if (filter === "needs-action") return !snoozed.has(a.id) && !intervened.has(a.id);
+        if (filter === "snoozed") return snoozed.has(a.id);
+        return intervened.has(a.id);
+      })
       .sort((a, b) => b.riskScore - a.riskScore);
-  }, [snoozed, filter]);
+  }, [snoozed, intervened, filter]);
 
   const active = seed.find((a) => a.id === activeId)!;
 
