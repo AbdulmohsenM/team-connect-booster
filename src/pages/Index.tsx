@@ -20,6 +20,16 @@ const Index = () => {
 
   const [filter, setFilter] = useState<"needs-action" | "snoozed" | "intervened">("needs-action");
   const [activeId, setActiveId] = useState<string | null>(needsAction[0]?.id ?? accounts[0]?.id ?? null);
+  // Brief loading state when switching accounts (simulates fetching the
+  // full risk profile + signals + recommended action). Keyed off activeId.
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (!activeId) return;
+    setLoadingDetail(true);
+    const t = setTimeout(() => setLoadingDetail(false), 500);
+    return () => clearTimeout(t);
+  }, [activeId]);
 
   // If hideAll dev toggle is on, show empty state
   if (hideAll || (needsAction.length === 0 && intervened.size === 0 && snoozed.size === 0)) {
