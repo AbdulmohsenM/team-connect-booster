@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useRetention } from "../state/RetentionContext";
 import { channelIcon } from "../utils/channels";
 import { formatTimestamp } from "../utils/time";
+import { TableRowSkeleton } from "../components/Skeletons";
 import type { Channel } from "../data/types";
 
 const statusStyle = {
