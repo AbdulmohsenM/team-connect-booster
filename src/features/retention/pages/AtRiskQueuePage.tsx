@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Navigate as RouterNavigate } from "react-router-dom";
 import { Bell, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
@@ -26,9 +26,11 @@ export default function AtRiskQueuePage() {
   const loadingDetail = useDetailLoading(activeId, 500);
 
   // Pick a default selection once accounts arrive.
-  if (activeId === null && accounts.length > 0) {
-    setActiveId(needsAction[0]?.id ?? accounts[0].id);
-  }
+  useEffect(() => {
+    if (activeId === null && accounts.length > 0) {
+      setActiveId(needsAction[0]?.id ?? accounts[0].id);
+    }
+  }, [activeId, accounts, needsAction]);
 
   if (loading && accounts.length === 0) {
     return (
