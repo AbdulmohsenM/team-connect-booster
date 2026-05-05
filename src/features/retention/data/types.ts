@@ -50,3 +50,41 @@ export type SnoozeEntry = {
   durationMs: number;
   by: string;
 };
+
+export type AccountNote = {
+  id: string;
+  accountId: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: number;
+};
+
+export type RiskEvent = {
+  id: string;
+  accountId: string;
+  eventType: "flagged" | "score_change" | "cleared";
+  previousScore: number | null;
+  newScore: number;
+  occurredAt: number;
+};
+
+export type FollowUp = {
+  id: string;
+  logId: string;
+  accountId: string;
+  scheduledAt: number;
+  completedAt: number | null;
+};
+
+export type OrgGoal = {
+  id: string;
+  metric: string;
+  targetPct: number;
+  periodStart: number;
+  periodEnd: number;
+};
+
+export type UserPreferences = {
+  defaultSnoozeHours: number;
+};
