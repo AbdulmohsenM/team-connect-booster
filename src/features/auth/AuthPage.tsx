@@ -51,14 +51,24 @@ export default function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
+    setServerError(null);
+    if (Object.keys(errors).length > 0) {
+      // Validation failed — keep email, name, AND password populated.
+      return;
+    }
     setLoading(true);
     try {
       enableDemoSession();
       window.dispatchEvent(new Event("plansmith-demo-auth-change"));
+      // Only clear the password on success.
+      setPassword("");
       toast.success("Signed in", { description: "Preview access enabled." });
       navigate("/", { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Auth failed");
+      const msg = err instanceof Error ? err.message : "Auth failed";
+      setServerError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
