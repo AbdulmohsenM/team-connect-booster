@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { enableDemoSession, useSession } from "./SessionProvider";
 
