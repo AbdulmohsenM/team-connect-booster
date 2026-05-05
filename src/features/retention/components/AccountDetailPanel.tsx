@@ -5,16 +5,20 @@ import { Button } from "@/components/ui/button";
 import { RiskScoreRing } from "./RiskBadge";
 import { channelIcon } from "../utils/channels";
 import { formatRelative } from "../utils/time";
-import type { Account, Action, LogEntry } from "../data/types";
+import type { Account, Action, AccountNote, LogEntry, RiskEvent } from "../data/types";
 
 interface Props {
   account: Account;
   intervened: boolean;
   log: LogEntry[];
+  notes: AccountNote[];
+  riskEvent: RiskEvent | null;
+  currentUserName: string;
   /** Should resolve on success and reject on delivery failure. */
   onIntervene: (actionId: string) => Promise<void> | void;
   onSnooze: () => void;
   onClose: () => void;
+  snoozeHours: number;
 }
 
 /**
@@ -22,7 +26,7 @@ interface Props {
  * Three visual tiers: Hero (suggested intervention), Context (why + quote),
  * Supporting (activity & ownership timeline).
  */
-export function AccountDetailPanel({ account, intervened, log, onIntervene, onSnooze, onClose }: Props) {
+export function AccountDetailPanel({ account, intervened, log, notes, riskEvent, currentUserName, onIntervene, onSnooze, onClose, snoozeHours }: Props) {
   const [selected, setSelected] = useState<Action>(account.recommended);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ message: string; failedActionId: string } | null>(null);
