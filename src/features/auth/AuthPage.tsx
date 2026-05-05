@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { enableDemoSession } from "./SessionProvider";
 
 /**
  * Minimal email/password auth gate. RLS on every retention table requires an
@@ -21,43 +21,20 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const useDemo = () => {
-    setMode("signup");
+    setMode("signin");
     setEmail(DEMO_EMAIL);
     setPassword(DEMO_PASSWORD);
     setName(DEMO_NAME);
-    toast("Demo creds filled", { description: "Click Create account once, then Sign in." });
+    toast("Demo mode ready", { description: "Click Sign in to enter immediately." });
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Always sign in as the demo account, regardless of what was typed.
-    const effectiveEmail = email.trim() || DEMO_EMAIL;
-    const effectivePassword = password || DEMO_PASSWORD;
-    const effectiveName = name.trim() || DEMO_NAME;
     try {
-      let { error } = await supabase.auth.signInWithPassword({
-        email: effectiveEmail,
-        password: effectivePassword,
-      });
-
-      // If the demo user doesn't exist yet, create it then sign in.
-      if (error) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: effectiveEmail,
-          password: effectivePassword,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: { display_name: effectiveName },
-          },
-        });
-        if (signUpError && !/registered/i.test(signUpError.message)) throw signUpError;
-        ({ error } = await supabase.auth.signInWithPassword({
-          email: effectiveEmail,
-          password: effectivePassword,
-        }));
-        if (error) throw error;
-      }
+      enableDemoSession();
+      window.dispatchEvent(new Event("plansmith-demo-auth-change"));
+      toast.success("Signed in", { description: "Preview access enabled." });
       navigate("/", { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Auth failed");
