@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/features/auth/SessionProvider";
+import { accounts as demoAccounts } from "../data/accounts";
 import type {
   Account, Action, Channel, LogEntry, Signal, SnoozeEntry,
   AccountNote, RiskEvent, FollowUp, OrgGoal, UserPreferences,
@@ -30,6 +31,7 @@ type Ctx = {
 const RetentionContext = createContext<Ctx | null>(null);
 
 const FAILURE_RATE = 0;
+const DEMO_NOW = new Date("2026-05-05T10:00:00Z").getTime();
 
 type AccountRow = {
   id: string; team: string; plan: string; seats: number;
@@ -48,6 +50,29 @@ type RiskEventRow = { id: string; account_id: string; event_type: "flagged" | "s
 type FollowUpRow = { id: string; log_id: string; account_id: string; scheduled_at: string; completed_at: string | null };
 type OrgGoalRow = { id: string; metric: string; target_pct: number; period_start: string; period_end: string };
 type PrefRow = { user_id: string; default_snooze_hours: number; notification_settings: unknown };
+
+const DEMO_RISK_EVENTS: RiskEvent[] = [
+  { id: "risk-acme", accountId: "acme-robotics", eventType: "flagged", previousScore: 81, newScore: 92, occurredAt: DEMO_NOW - 2 * 24 * 60 * 60 * 1000 },
+  { id: "risk-northwind", accountId: "northwind", eventType: "flagged", previousScore: 69, newScore: 78, occurredAt: DEMO_NOW - 4 * 24 * 60 * 60 * 1000 },
+  { id: "risk-globex", accountId: "globex", eventType: "flagged", previousScore: 65, newScore: 71, occurredAt: DEMO_NOW - 5 * 24 * 60 * 60 * 1000 },
+  { id: "risk-fern", accountId: "fern-co", eventType: "flagged", previousScore: 52, newScore: 64, occurredAt: DEMO_NOW - 1 * 24 * 60 * 60 * 1000 },
+  { id: "risk-old-1", accountId: "vertex", eventType: "flagged", previousScore: 54, newScore: 61, occurredAt: DEMO_NOW - 10 * 24 * 60 * 60 * 1000 },
+  { id: "risk-old-2", accountId: "globex", eventType: "flagged", previousScore: 57, newScore: 66, occurredAt: DEMO_NOW - 12 * 24 * 60 * 60 * 1000 },
+  { id: "risk-old-3", accountId: "northwind", eventType: "flagged", previousScore: 60, newScore: 68, occurredAt: DEMO_NOW - 13 * 24 * 60 * 60 * 1000 },
+];
+
+const DEMO_NOTES: AccountNote[] = [
+  { id: "note-acme", accountId: "acme-robotics", authorId: "00000000-0000-4000-8000-000000000001", authorName: "Jordan Kim", body: "Priya is blocked on team invites, not product value. Prioritize the forwarding link instead of a generic nurture.", createdAt: DEMO_NOW - 7 * 60 * 60 * 1000 },
+  { id: "note-globex", accountId: "globex", authorId: "00000000-0000-4000-8000-000000000001", authorName: "Jordan Kim", body: "High expansion upside, but rollout fear is the real risk. Position support as white-glove rather than training.", createdAt: DEMO_NOW - 28 * 60 * 60 * 1000 },
+];
+
+const DEMO_ORG_GOAL: OrgGoal = {
+  id: "goal-q2",
+  metric: "intervention_coverage_pct",
+  targetPct: 50,
+  periodStart: new Date("2026-04-01T00:00:00Z").getTime(),
+  periodEnd: new Date("2026-06-30T23:59:59Z").getTime(),
+};
 
 function shapeAccount(a: AccountRow, signals: SignalRow[], actions: ActionRow[]): Account {
   const sigs: Signal[] = signals
@@ -77,7 +102,7 @@ function shapeAccount(a: AccountRow, signals: SignalRow[], actions: ActionRow[])
 const DEFAULT_PREFS: UserPreferences = { defaultSnoozeHours: 48 };
 
 export function RetentionProvider({ children }: { children: ReactNode }) {
-  const { user, displayName } = useSession();
+  const { user, displayName, isDemo } = useSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [snoozed, setSnoozed] = useState<Map<string, SnoozeEntry>>(new Map());
@@ -94,6 +119,22 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
   const intervened = useMemo(() => new Set(logs.map((l) => l.accountId)), [logs]);
 
   useEffect(() => {
+    if (!isDemo || !user) return;
+    setAccounts(demoAccounts);
+    setAccountsUpdatedAt(DEMO_NOW);
+    setLogs([]);
+    setSnoozed(new Map());
+    setNotes(DEMO_NOTES);
+    setRiskEvents(DEMO_RISK_EVENTS);
+    setFollowUps([]);
+    setOrgGoal(DEMO_ORG_GOAL);
+    setPreferences(DEFAULT_PREFS);
+    setHideAll(false);
+    setLoading(false);
+  }, [isDemo, user]);
+
+  useEffect(() => {
+    if (isDemo) return;
     if (!user) {
       setAccounts([]); setLogs([]); setSnoozed(new Map());
       setNotes([]); setRiskEvents([]); setFollowUps([]);
@@ -197,7 +238,7 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, isDemo]);
 
   const intervene = useCallback(
     async (accountId: string, actionId: string): Promise<LogEntry> => {
@@ -205,6 +246,41 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       const acc = accounts.find((a) => a.id === accountId);
       const action = acc ? [acc.recommended, ...acc.alternates].find((x) => x.id === actionId) : undefined;
       if (!acc || !action) throw new Error("Account or action not found");
+
+      if (isDemo) {
+        const sentAt = Date.now();
+        const entry: LogEntry = {
+          id: `demo-log-${accountId}-${actionId}-${sentAt}`,
+          accountId,
+          accountTeam: acc.team,
+          ownerName: acc.owner.name,
+          actionId,
+          actionTitle: action.title,
+          channel: action.channel,
+          at: sentAt,
+          by: displayName || "You",
+          status: "Awaiting response",
+        };
+        setLogs((prev) => [entry, ...prev]);
+        setFollowUps((prev) => [
+          ...prev,
+          {
+            id: `demo-fu-${entry.id}`,
+            logId: entry.id,
+            accountId,
+            scheduledAt: sentAt + 48 * 60 * 60 * 1000,
+            completedAt: null,
+          },
+        ]);
+        if (snoozed.has(accountId)) {
+          setSnoozed((prev) => {
+            const m = new Map(prev);
+            m.delete(accountId);
+            return m;
+          });
+        }
+        return entry;
+      }
 
       if (forceFailNext || Math.random() < FAILURE_RATE) {
         setForceFailNext(false);
@@ -255,7 +331,7 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       }
       return entry;
     },
-    [accounts, user, displayName, forceFailNext, snoozed],
+    [accounts, user, displayName, forceFailNext, snoozed, isDemo],
   );
 
   const snooze = useCallback(
@@ -263,6 +339,19 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       if (!user) return;
       const h = hours ?? preferences.defaultSnoozeHours;
       const durationMs = h * 60 * 60 * 1000;
+      if (isDemo) {
+        setSnoozed((prev) => {
+          const m = new Map(prev);
+          m.set(accountId, {
+            accountId,
+            snoozedAt: Date.now(),
+            durationMs,
+            by: displayName || "You",
+          });
+          return m;
+        });
+        return;
+      }
       await supabase.from("snoozes").delete().eq("account_id", accountId);
       const { data, error } = await supabase
         .from("snoozes")
@@ -281,13 +370,17 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
         return m;
       });
     },
-    [user, displayName, preferences.defaultSnoozeHours],
+    [user, displayName, preferences.defaultSnoozeHours, isDemo],
   );
 
   const unsnooze = useCallback(async (accountId: string) => {
+    if (isDemo) {
+      setSnoozed((prev) => { const m = new Map(prev); m.delete(accountId); return m; });
+      return;
+    }
     await supabase.from("snoozes").delete().eq("account_id", accountId);
     setSnoozed((prev) => { const m = new Map(prev); m.delete(accountId); return m; });
-  }, []);
+  }, [isDemo]);
 
   const value = useMemo<Ctx>(
     () => ({
