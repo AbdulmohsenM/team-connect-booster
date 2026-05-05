@@ -11,7 +11,7 @@ import { formatRelative } from "../utils/time";
 export default function InterventionConfirmationPage() {
   const { entryId } = useParams();
   const navigate = useNavigate();
-  const { logs, accounts, intervened, snoozed } = useRetention();
+  const { logs, accounts, intervened, snoozed, followUps } = useRetention();
   const { total, sent: intervenedCount, pct } = useInterventionProgress();
 
   const entry = useMemo(() => logs.find((l) => l.id === entryId), [logs, entryId]);
