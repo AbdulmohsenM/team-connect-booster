@@ -27,6 +27,7 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session) navigate("/", { replace: true });
