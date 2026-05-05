@@ -1,4 +1,4 @@
-import { useState, Navigate } from "react";
+import { useState } from "react";
 import { useNavigate, Navigate as RouterNavigate } from "react-router-dom";
 import { Bell, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +15,6 @@ import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkel
  * right: AccountDetailPanel for the active selection.
  */
 export default function AtRiskQueuePage() {
-  void Navigate; // keep import shape stable
   const navigate = useNavigate();
   const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll } = useRetention();
 
