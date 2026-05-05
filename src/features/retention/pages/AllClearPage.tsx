@@ -5,10 +5,29 @@ import { useRetention } from "../state/RetentionContext";
 
 /** All Clear page — empty/inbox-zero state for the at-risk queue. */
 export default function AllClearPage() {
-  const { intervened, snoozed, logs, hideAll, setHideAll } = useRetention();
+  const { intervened, snoozed, logs, riskEvents, hideAll, setHideAll } = useRetention();
   const intervenedCount = intervened.size;
   const snoozedCount = snoozed.size;
   const recent = logs.slice(0, 3);
+
+  // Interventions sent this quarter (from logs.at).
+  const quarterStart = (() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3, 1).getTime();
+  })();
+  const quarterIntervenedCount = logs.filter((l) => l.at >= quarterStart).length;
+
+  // Week-over-week at-risk change from risk_events.
+  const now = Date.now();
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const flagged = riskEvents.filter((r) => r.eventType === "flagged");
+  const thisWeek = flagged.filter((r) => r.occurredAt >= now - weekMs).length;
+  const priorWeek = flagged.filter((r) => r.occurredAt >= now - 2 * weekMs && r.occurredAt < now - weekMs).length;
+  const weekOverWeek = priorWeek === 0
+    ? (thisWeek === 0 ? 0 : 100)
+    : Math.round(((thisWeek - priorWeek) / priorWeek) * 100);
+  const weekOverWeekLabel = `${weekOverWeek > 0 ? "+" : ""}${weekOverWeek}%`;
+  const weekOverWeekIsImproving = weekOverWeek <= 0;
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-muted/30">
