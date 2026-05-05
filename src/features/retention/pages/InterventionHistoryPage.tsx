@@ -127,7 +127,13 @@ export default function InterventionHistoryPage() {
             <span className="text-right">When</span>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading && logs.length === 0 ? (
+            <>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <TableRowSkeleton key={i} columns={5} />
+              ))}
+            </>
+          ) : filtered.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <Sparkles className="size-8 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm font-medium">No interventions match these filters</p>
@@ -138,7 +144,7 @@ export default function InterventionHistoryPage() {
               </p>
               {logs.length === 0 && (
                 <Link to="/" className="inline-block mt-4">
-                  <Button size="sm" variant="outline">Open at-risk queue</Button>
+                  <Button size="sm" className="gap-1.5">Open at-risk queue <ChevronDown className="size-3.5 -rotate-90" /></Button>
                 </Link>
               )}
             </div>
