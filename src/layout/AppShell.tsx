@@ -87,7 +87,12 @@ export function AppShell({ children }: Props) {
               {(displayName || "U").slice(0, 2).toUpperCase()}
             </div>
             <div className="text-xs flex-1 min-w-0">
-              <div className="text-sidebar-primary-foreground truncate">{displayName || "User"}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sidebar-primary-foreground truncate">{displayName || "User"}</span>
+                <span className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-primary/20 text-primary-foreground">
+                  csm
+                </span>
+              </div>
               <div className="text-sidebar-foreground/60 truncate">{user?.email}</div>
             </div>
             <button

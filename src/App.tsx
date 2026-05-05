@@ -15,6 +15,7 @@ import {
 } from "@/features/retention";
 import { SessionProvider, RequireAuth } from "@/features/auth/SessionProvider";
 import AuthPage from "@/features/auth/AuthPage";
+import ResetPasswordPage from "@/features/auth/ResetPasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
         <SessionProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/" element={<Protected><AtRiskQueuePage /></Protected>} />
             <Route path="/confirmation/:entryId" element={<Protected><InterventionConfirmationPage /></Protected>} />
             <Route path="/snoozed" element={<Protected><SnoozedAccountsPage /></Protected>} />
