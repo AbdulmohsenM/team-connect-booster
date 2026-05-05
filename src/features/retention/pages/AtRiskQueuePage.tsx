@@ -16,21 +16,41 @@ import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkel
  */
 export default function AtRiskQueuePage() {
   const navigate = useNavigate();
-  const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll } = useRetention();
+  const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll, loading } = useRetention();
 
   const [filter, setFilter] = useState<QueueFilter>("needs-action");
   const { visible, counts, needsAction } = useAccountQueue(filter);
   const { total, sent: intervenedCount, pct } = useInterventionProgress();
 
-  const [activeId, setActiveId] = useState<string | null>(needsAction[0]?.id ?? accounts[0]?.id ?? null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const loadingDetail = useDetailLoading(activeId, 500);
 
+  // Pick a default selection once accounts arrive.
+  if (activeId === null && accounts.length > 0) {
+    setActiveId(needsAction[0]?.id ?? accounts[0].id);
+  }
+
+  if (loading && accounts.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+        Loading at-risk queue…
+      </div>
+    );
+  }
+
   // Empty state takeover
-  if (hideAll || (needsAction.length === 0 && intervened.size === 0 && snoozed.size === 0)) {
+  if (hideAll || (accounts.length > 0 && needsAction.length === 0 && intervened.size === 0 && snoozed.size === 0)) {
     return <RouterNavigate to="/all-clear" replace />;
   }
 
   const active = accounts.find((a) => a.id === activeId) ?? visible[0] ?? accounts[0];
+  if (!active) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+        No accounts yet. Seed the database to begin.
+      </div>
+    );
+  }
   const activeLogs = logs.filter((l) => l.accountId === active.id);
 
   const handleIntervene = async (actionId: string) => {
