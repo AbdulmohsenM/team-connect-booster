@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useRef } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const DEMO_SESSION_KEY = "plansmith-demo-session";
 const DEMO_DISPLAY_NAME = "Jordan Kim";
