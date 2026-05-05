@@ -16,11 +16,11 @@ import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkel
  */
 export default function AtRiskQueuePage() {
   const navigate = useNavigate();
-  const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll, loading } = useRetention();
+  const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll, loading, accountsUpdatedAt } = useRetention();
 
   const [filter, setFilter] = useState<QueueFilter>("needs-action");
   const { visible, counts, needsAction } = useAccountQueue(filter);
-  const { total, sent: intervenedCount, pct } = useInterventionProgress();
+  const { total, sent: intervenedCount, pct, targetPct } = useInterventionProgress();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const loadingDetail = useDetailLoading(activeId, 500);
