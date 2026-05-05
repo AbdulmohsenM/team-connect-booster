@@ -21,7 +21,7 @@ export function OnboardingBanner() {
   };
 
   return (
-    <div className="mx-6 mt-4 rounded-xl border border-primary/30 bg-primary/5 p-4 relative">
+    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 relative">
       <button
         onClick={dismiss}
         aria-label="Dismiss onboarding"
