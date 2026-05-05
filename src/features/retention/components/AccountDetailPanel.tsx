@@ -285,45 +285,70 @@ export function AccountDetailPanel({ account, intervened, log, notes, riskEvent,
 
       {/* Action bar */}
       <div className="border-t border-border bg-card px-7 py-4 space-y-3">
-        {error && !intervened && (
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-danger-soft px-4 py-3"
-          >
-            <div className="size-8 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertOctagon className="size-4 text-destructive" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-destructive">
-                Intervention failed to send. Please retry or choose another action.
-              </p>
-              <p className="text-xs text-destructive/80 mt-0.5 truncate">{error.message}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
-                  setError(null);
-                  const next = allActions.find((a) => a.id !== error.failedActionId);
-                  if (next) setSelected(next);
-                }}
+        {error && !intervened && (() => {
+          const isAuthError =
+            /401|jwt|session|rls|unauthor|expired/i.test(error.message);
+          if (isAuthError) {
+            return (
+              <div
+                role="alert"
+                className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-danger-soft px-4 py-3"
               >
-                Choose another action
-              </Button>
-              <Button
-                size="sm"
-                className="h-8 text-xs gap-1.5"
-                onClick={handleSend}
-                disabled={sending}
-              >
-                <RotateCw className={cn("size-3.5", sending && "animate-spin")} />
-                {sending ? "Retrying…" : "Retry"}
-              </Button>
+                <div className="size-8 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertOctagon className="size-4 text-destructive" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-destructive">
+                    Your session expired. Please sign in again.
+                  </p>
+                  <p className="text-xs text-destructive/80 mt-0.5 truncate">{error.message}</p>
+                </div>
+                <Link to="/auth">
+                  <Button size="sm" className="h-8 text-xs">Sign in</Button>
+                </Link>
+              </div>
+            );
+          }
+          return (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-danger-soft px-4 py-3"
+            >
+              <div className="size-8 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertOctagon className="size-4 text-destructive" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-destructive">
+                  Intervention failed to send. Please retry or choose another action.
+                </p>
+                <p className="text-xs text-destructive/80 mt-0.5 truncate">{error.message}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => {
+                    setError(null);
+                    const next = allActions.find((a) => a.id !== error.failedActionId);
+                    if (next) setSelected(next);
+                  }}
+                >
+                  Choose another action
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={handleSend}
+                  disabled={sending}
+                >
+                  <RotateCw className={cn("size-3.5", sending && "animate-spin")} />
+                  {sending ? "Retrying…" : "Retry"}
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {intervened ? (
           <div className="flex items-center justify-between">
