@@ -19,6 +19,8 @@ type Ctx = {
   preferences: UserPreferences;
   accountsUpdatedAt: number | null;
   loading: boolean;
+  error: string | null;
+  reload: () => void;
   intervene: (accountId: string, actionId: string) => Promise<LogEntry>;
   snooze: (accountId: string, hours?: number) => Promise<void>;
   unsnooze: (accountId: string) => Promise<void>;
