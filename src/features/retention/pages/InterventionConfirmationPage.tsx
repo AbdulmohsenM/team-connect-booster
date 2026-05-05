@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRetention } from "../state/RetentionContext";
 import { useInterventionProgress } from "../hooks/useAccountQueue";
 import { channelIcon } from "../utils/channels";
+import { formatRelative } from "../utils/time";
 
 /** Intervention Confirmation page — receipt + next-account CTA. */
 export default function InterventionConfirmationPage() {
