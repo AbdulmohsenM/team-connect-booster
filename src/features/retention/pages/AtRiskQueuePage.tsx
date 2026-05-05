@@ -11,6 +11,7 @@ import { AccountRow } from "../components/AccountRow";
 import { AccountDetailPanel } from "../components/AccountDetailPanel";
 import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
 import { AccountRowSkeleton } from "../components/Skeletons";
+import { OnboardingBanner } from "../components/OnboardingBanner";
 import { formatRelative } from "../utils/time";
 import { useSession } from "@/features/auth/SessionProvider";
 
