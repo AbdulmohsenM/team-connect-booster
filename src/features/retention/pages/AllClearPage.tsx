@@ -52,7 +52,7 @@ export default function AllClearPage() {
               <Sparkles className="size-3.5" />
               <p className="text-[10px] uppercase tracking-wider font-semibold">Interventions sent</p>
             </div>
-            <p className="text-3xl font-semibold mt-2 tabular-nums">{intervenedCount}</p>
+            <p className="text-3xl font-semibold mt-2 tabular-nums">{quarterIntervenedCount}</p>
             <p className="text-xs text-muted-foreground mt-1">this quarter</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
@@ -64,11 +64,11 @@ export default function AllClearPage() {
             <p className="text-xs text-muted-foreground mt-1">resume in &lt; 48h</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2 text-success">
+            <div className={cn("flex items-center gap-2", weekOverWeekIsImproving ? "text-success" : "text-warning")}>
               <TrendingDown className="size-3.5" />
               <p className="text-[10px] uppercase tracking-wider font-semibold">At-risk this week</p>
             </div>
-            <p className="text-3xl font-semibold mt-2 tabular-nums text-success">−32%</p>
+            <p className={cn("text-3xl font-semibold mt-2 tabular-nums", weekOverWeekIsImproving ? "text-success" : "text-warning")}>{weekOverWeekLabel}</p>
             <p className="text-xs text-muted-foreground mt-1">vs prior 7 days</p>
           </div>
         </div>
