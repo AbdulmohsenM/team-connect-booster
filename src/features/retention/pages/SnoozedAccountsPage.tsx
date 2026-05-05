@@ -8,10 +8,11 @@ import { useRetention } from "../state/RetentionContext";
 import { useNow } from "../hooks/useNow";
 import { timeRemaining } from "../utils/time";
 import { RiskBadge } from "../components/RiskBadge";
+import { TableRowSkeleton } from "../components/Skeletons";
 
 /** Snoozed Accounts page — table with countdown + Resume action. */
 export default function SnoozedAccountsPage() {
-  const { accounts, snoozed, unsnooze, preferences } = useRetention();
+  const { accounts, snoozed, unsnooze, preferences, loading } = useRetention();
   const now = useNow(30_000);
   const [query, setQuery] = useState("");
 
