@@ -11,6 +11,7 @@ import { AccountRow } from "../components/AccountRow";
 import { AccountDetailPanel } from "../components/AccountDetailPanel";
 import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
 import { AccountRowSkeleton } from "../components/Skeletons";
+import { OnboardingBanner } from "../components/OnboardingBanner";
 import { formatRelative } from "../utils/time";
 import { useSession } from "@/features/auth/SessionProvider";
 
@@ -115,7 +116,8 @@ export default function AtRiskQueuePage() {
       {/* Queue */}
       <section className="w-[440px] shrink-0 border-r border-border flex flex-col bg-muted/30">
         <header className="px-6 pt-6 pb-4 bg-background border-b border-border">
-          <div className="flex items-center justify-between mb-1">
+          <OnboardingBanner />
+          <div className="flex items-center justify-between mb-1 mt-4">
             <h1 className="text-lg font-semibold">At-risk accounts</h1>
             <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"><Bell className="size-4" /></button>
           </div>
@@ -179,6 +181,11 @@ export default function AtRiskQueuePage() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {filter === "needs-action" && visible.length > 0 && (
+            <p className="px-1 pb-1 text-[11px] text-muted-foreground">
+              Start with the highest-risk account at the top.
+            </p>
+          )}
           {visible.length === 0 && (
             <div className="text-center py-12 text-sm text-muted-foreground">
               {filter === "needs-action" && "All clear — every at-risk account has been actioned or snoozed."}
@@ -186,12 +193,13 @@ export default function AtRiskQueuePage() {
               {filter === "intervened" && "No interventions sent yet. Open an account to send one."}
             </div>
           )}
-          {visible.map((a) => (
+          {visible.map((a, i) => (
             <AccountRow
               key={a.id}
               account={a}
               active={a.id === active.id}
               intervened={intervened.has(a.id)}
+              highlight={i === 0 && filter === "needs-action" && !intervened.has(a.id)}
               onClick={() => setActiveId(a.id)}
             />
           ))}
