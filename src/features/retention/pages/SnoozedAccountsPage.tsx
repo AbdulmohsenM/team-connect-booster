@@ -76,7 +76,15 @@ export default function SnoozedAccountsPage() {
             <span className="text-right">Resumes in</span>
           </div>
 
-          {items.length === 0 && (
+          {loading && snoozed.size === 0 && (
+            <>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <TableRowSkeleton key={i} columns={5} />
+              ))}
+            </>
+          )}
+
+          {!loading && items.length === 0 && (
             <div className="px-5 py-16 text-center">
               <Clock className="size-8 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm font-medium">No snoozed accounts</p>
