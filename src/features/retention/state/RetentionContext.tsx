@@ -415,10 +415,10 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
     () => ({
       accounts, intervened, snoozed, logs,
       notes, riskEvents, followUps, orgGoal, preferences, accountsUpdatedAt,
-      loading, intervene, snooze, unsnooze,
+      loading, error, reload, intervene, snooze, unsnooze,
       forceFailNext, setForceFailNext, hideAll, setHideAll,
     }),
-    [accounts, intervened, snoozed, logs, notes, riskEvents, followUps, orgGoal, preferences, accountsUpdatedAt, loading, intervene, snooze, unsnooze, forceFailNext, hideAll],
+    [accounts, intervened, snoozed, logs, notes, riskEvents, followUps, orgGoal, preferences, accountsUpdatedAt, loading, error, reload, intervene, snooze, unsnooze, forceFailNext, hideAll],
   );
 
   return <RetentionContext.Provider value={value}>{children}</RetentionContext.Provider>;
