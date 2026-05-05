@@ -8,7 +8,7 @@ import { toast } from "sonner";
  * Minimal email/password auth gate. RLS on every retention table requires an
  * authenticated session, so this screen blocks the app until the user signs in.
  */
-const DEMO_EMAIL = "demo@plansmith.test";
+const DEMO_EMAIL = "demo.plansmith@gmail.com";
 const DEMO_PASSWORD = "Plansmith!2026";
 const DEMO_NAME = "Jordan Kim";
 
