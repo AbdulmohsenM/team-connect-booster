@@ -16,6 +16,7 @@ import {
 import { SessionProvider, RequireAuth } from "@/features/auth/SessionProvider";
 import AuthPage from "@/features/auth/AuthPage";
 import ResetPasswordPage from "@/features/auth/ResetPasswordPage";
+import { OfflineBanner } from "@/components/OfflineBanner";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SessionProvider>
+          <OfflineBanner />
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
