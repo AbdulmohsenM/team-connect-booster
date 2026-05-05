@@ -92,7 +92,6 @@ export default function AuthPage() {
           <label className="text-xs font-medium">Email</label>
           <input
             type="email"
-            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full text-sm px-3 py-2 rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -102,8 +101,6 @@ export default function AuthPage() {
           <label className="text-xs font-medium">Password</label>
           <input
             type="password"
-            required
-            minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full text-sm px-3 py-2 rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
