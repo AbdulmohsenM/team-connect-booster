@@ -93,15 +93,24 @@ export default function InterventionConfirmationPage() {
                   <p className="text-muted-foreground">Tracked in <Link to="/history" className="text-primary hover:underline">Intervention history</Link>.</p>
                 </div>
               </li>
-              <li className="flex gap-3 items-start">
-                <div className="size-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">3</div>
-                <div className="text-sm">
-                  <p className="font-medium flex items-center gap-2">
-                    <Calendar className="size-3.5 text-primary" /> Auto follow-up scheduled in 48h
-                  </p>
-                  <p className="text-muted-foreground">If no response, we'll resurface this account for a manual nudge.</p>
-                </div>
-              </li>
+              {(() => {
+                const fu = followUps.find((f) => f.logId === entry.id);
+                const when = fu
+                  ? new Date(fu.scheduledAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                  : null;
+                return (
+                  <li className="flex gap-3 items-start">
+                    <div className="size-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">3</div>
+                    <div className="text-sm">
+                      <p className="font-medium flex items-center gap-2">
+                        <Calendar className="size-3.5 text-primary" />
+                        {when ? `Auto follow-up scheduled for ${when}` : "Auto follow-up will be scheduled"}
+                      </p>
+                      <p className="text-muted-foreground">If no response, we'll resurface this account for a manual nudge.</p>
+                    </div>
+                  </li>
+                );
+              })()}
             </ol>
           </div>
 
