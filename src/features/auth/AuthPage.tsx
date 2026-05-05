@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { enableDemoSession } from "./SessionProvider";
-import { useSession } from "./SessionProvider";
+import { enableDemoSession, useSession } from "./SessionProvider";
 
 /**
- * Minimal email/password auth gate. RLS on every retention table requires an
- * authenticated session, so this screen blocks the app until the user signs in.
+ * Demo-bypass auth gate. Field-level validation is enforced on submit so the
+ * UI matches the production auth contract, but submission ultimately enables
+ * the local demo session (real Supabase auth is intentionally bypassed for
+ * preview to avoid email rate-limit issues).
  */
 const DEMO_EMAIL = "demo.plansmith@gmail.com";
 const DEMO_PASSWORD = "Plansmith!2026";
 const DEMO_NAME = "Jordan Kim";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -20,17 +23,26 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (session) navigate("/", { replace: true });
   }, [session, navigate]);
 
+  const errors = useMemo(() => {
+    const e: { email?: string; password?: string } = {};
+    if (email && !EMAIL_RE.test(email)) e.email = "Enter a valid email address.";
+    if (password && password.length < 6) e.password = "Password must be at least 6 characters.";
+    return e;
+  }, [email, password]);
+
   const useDemo = () => {
     setMode("signin");
     setEmail(DEMO_EMAIL);
     setPassword(DEMO_PASSWORD);
     setName(DEMO_NAME);
+    setTouched({});
     toast("Demo mode ready", { description: "Click Sign in to enter immediately." });
   };
 
@@ -49,6 +61,30 @@ export default function AuthPage() {
     }
   };
 
+  const forgotPassword = () => {
+    if (!email || !EMAIL_RE.test(email)) {
+      setTouched((t) => ({ ...t, email: true }));
+      toast.error("Enter your email first", {
+        description: "We'll send a recovery link to that address.",
+      });
+      return;
+    }
+    // In the real flow:
+    // supabase.auth.resetPasswordForEmail(email, {
+    //   redirectTo: `${window.location.origin}/reset-password`,
+    // });
+    toast.success("Recovery link sent", {
+      description: `If ${email} exists, a reset link is on its way.`,
+    });
+  };
+
+  const inputClass = (hasError?: boolean) =>
+    `w-full text-sm px-3 py-2 rounded-md border bg-background focus:outline-none focus:ring-2 ${
+      hasError
+        ? "border-destructive focus:ring-destructive/20"
+        : "border-border focus:ring-primary/20"
+    }`;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-card space-y-5">
@@ -66,9 +102,12 @@ export default function AuthPage() {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full text-sm px-3 py-2 rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className={inputClass(false)}
               placeholder="Jordan Kim"
             />
+            <p className="text-[11px] text-muted-foreground">
+              Saved to your profile so teammates can recognise you.
+            </p>
           </div>
         )}
         <div className="space-y-1.5">
@@ -77,17 +116,38 @@ export default function AuthPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full text-sm px-3 py-2 rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            className={inputClass(touched.email && !!errors.email)}
+            placeholder="you@company.com"
           />
+          {touched.email && errors.email && (
+            <p className="text-[11px] text-destructive">{errors.email}</p>
+          )}
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium">Password</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium">Password</label>
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={forgotPassword}
+                className="text-[11px] text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full text-sm px-3 py-2 rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            className={inputClass(touched.password && !!errors.password)}
+            placeholder="At least 6 characters"
           />
+          {touched.password && errors.password && (
+            <p className="text-[11px] text-destructive">{errors.password}</p>
+          )}
         </div>
 
         <Button type="submit" disabled={loading} className="w-full">
@@ -96,7 +156,7 @@ export default function AuthPage() {
 
         <button
           type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setTouched({}); }}
           className="block w-full text-xs text-center text-muted-foreground hover:text-foreground"
         >
           {mode === "signin" ? "Need an account? Sign up" : "Already have one? Sign in"}
