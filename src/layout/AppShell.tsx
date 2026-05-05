@@ -84,12 +84,20 @@ export function AppShell({ children }: Props) {
         <div className="mt-auto px-3 py-4 border-t border-sidebar-border">
           <div className="flex items-center gap-2.5 px-2">
             <div className="size-7 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-accent-foreground">
-              JK
+              {(displayName || "U").slice(0, 2).toUpperCase()}
             </div>
-            <div className="text-xs">
-              <div className="text-sidebar-primary-foreground">Jordan Kim</div>
-              <div className="text-sidebar-foreground/60">PM · Growth</div>
+            <div className="text-xs flex-1 min-w-0">
+              <div className="text-sidebar-primary-foreground truncate">{displayName || "User"}</div>
+              <div className="text-sidebar-foreground/60 truncate">{user?.email}</div>
             </div>
+            <button
+              type="button"
+              onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
+              className="p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-primary-foreground"
+              title="Sign out"
+            >
+              <LogOut className="size-3.5" />
+            </button>
           </div>
         </div>
       </aside>
