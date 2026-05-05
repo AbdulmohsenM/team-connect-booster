@@ -152,100 +152,122 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [accRes, sigRes, actRes, logRes, snoozeRes, noteRes, riskRes, fuRes, goalRes, prefRes] = await Promise.all([
-        supabase.from("accounts").select("*").order("risk_score", { ascending: false }),
-        supabase.from("signals").select("*"),
-        supabase.from("actions").select("*"),
-        supabase.from("intervention_logs").select("*").order("sent_at", { ascending: false }),
-        supabase.from("snoozes").select("*"),
-        (supabase.from as any)("account_notes").select("*").order("created_at", { ascending: false }),
-        (supabase.from as any)("risk_events").select("*").order("occurred_at", { ascending: false }),
-        (supabase.from as any)("follow_ups").select("*"),
-        (supabase.from as any)("org_goals").select("*").eq("metric", "intervention_coverage_pct").order("period_start", { ascending: false }).limit(1).maybeSingle(),
-        (supabase.from as any)("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
-      ]);
-      if (cancelled) return;
+      setError(null);
+      try {
+        const [accRes, sigRes, actRes, logRes, snoozeRes, noteRes, riskRes, fuRes, goalRes, prefRes] = await Promise.all([
+          supabase.from("accounts").select("*").order("risk_score", { ascending: false }),
+          supabase.from("signals").select("*"),
+          supabase.from("actions").select("*"),
+          supabase.from("intervention_logs").select("*").order("sent_at", { ascending: false }),
+          supabase.from("snoozes").select("*"),
+          (supabase.from as any)("account_notes").select("*").order("created_at", { ascending: false }),
+          (supabase.from as any)("risk_events").select("*").order("occurred_at", { ascending: false }),
+          (supabase.from as any)("follow_ups").select("*"),
+          (supabase.from as any)("org_goals").select("*").eq("metric", "intervention_coverage_pct").order("period_start", { ascending: false }).limit(1).maybeSingle(),
+          (supabase.from as any)("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
+        ]);
+        if (cancelled) return;
 
-      const accs = (accRes.data ?? []) as AccountRow[];
-      const sigs = (sigRes.data ?? []) as SignalRow[];
-      const acts = (actRes.data ?? []) as ActionRow[];
-      const lgs = (logRes.data ?? []) as LogRow[];
-      const sns = (snoozeRes.data ?? []) as SnoozeRow[];
-      const nts = (noteRes.data ?? []) as NoteRow[];
-      const res = (riskRes.data ?? []) as RiskEventRow[];
-      const fus = (fuRes.data ?? []) as FollowUpRow[];
-      const goal = (goalRes.data ?? null) as OrgGoalRow | null;
-      const pref = (prefRes.data ?? null) as PrefRow | null;
+        // Detect 401 / RLS errors → trigger sign-out so the SessionProvider
+        // listener routes the user back to /auth.
+        const responses = [accRes, sigRes, actRes, logRes, snoozeRes, noteRes, riskRes, fuRes, goalRes, prefRes];
+        const unauthorized = responses.find((r: any) => {
+          const status = (r as any)?.status;
+          const code = (r as any)?.error?.code;
+          return status === 401 || code === "PGRST301" || code === "401";
+        });
+        if (unauthorized) {
+          await supabase.auth.signOut();
+          throw new Error("Your session expired. Please sign in again.");
+        }
 
-      const userIds = Array.from(new Set([
-        ...lgs.map((l) => l.sent_by),
-        ...sns.map((s) => s.snoozed_by),
-        ...nts.map((n) => n.author_id),
-      ]));
-      let names: Record<string, string> = {};
-      if (userIds.length) {
-        const { data: profs } = await supabase.from("profiles").select("id,display_name").in("id", userIds);
-        names = Object.fromEntries((profs ?? []).map((p) => [p.id, p.display_name]));
+        const firstError = responses.find((r: any) => r?.error)?.error;
+        if (firstError) throw firstError;
+
+        const accs = (accRes.data ?? []) as AccountRow[];
+        const sigs = (sigRes.data ?? []) as SignalRow[];
+        const acts = (actRes.data ?? []) as ActionRow[];
+        const lgs = (logRes.data ?? []) as LogRow[];
+        const sns = (snoozeRes.data ?? []) as SnoozeRow[];
+        const nts = (noteRes.data ?? []) as NoteRow[];
+        const res = (riskRes.data ?? []) as RiskEventRow[];
+        const fus = (fuRes.data ?? []) as FollowUpRow[];
+        const goal = (goalRes.data ?? null) as OrgGoalRow | null;
+        const pref = (prefRes.data ?? null) as PrefRow | null;
+
+        const userIds = Array.from(new Set([
+          ...lgs.map((l) => l.sent_by),
+          ...sns.map((s) => s.snoozed_by),
+          ...nts.map((n) => n.author_id),
+        ]));
+        let names: Record<string, string> = {};
+        if (userIds.length) {
+          const { data: profs } = await supabase.from("profiles").select("id,display_name").in("id", userIds);
+          names = Object.fromEntries((profs ?? []).map((p) => [p.id, p.display_name]));
+        }
+
+        const shaped = accs.map((a) => shapeAccount(a, sigs, acts));
+        setAccounts(shaped);
+        setAccountsUpdatedAt(
+          accs.length ? Math.max(...accs.map((a) => new Date(a.updated_at).getTime())) : null,
+        );
+
+        const accountById = new Map(shaped.map((a) => [a.id, a]));
+        setLogs(
+          lgs.map<LogEntry>((l) => {
+            const acc = accountById.get(l.account_id);
+            const action = acc ? [acc.recommended, ...acc.alternates].find((x) => x.id === l.action_id) : undefined;
+            return {
+              id: l.id, accountId: l.account_id, accountTeam: acc?.team ?? "",
+              ownerName: acc?.owner.name ?? "",
+              actionId: l.action_id, actionTitle: action?.title ?? "Intervention",
+              channel: l.channel, at: new Date(l.sent_at).getTime(),
+              by: names[l.sent_by] ?? "Teammate", status: l.status,
+            };
+          }),
+        );
+
+        setSnoozed(new Map(sns.map<[string, SnoozeEntry]>((s) => [s.account_id, {
+          accountId: s.account_id,
+          snoozedAt: new Date(s.snoozed_at).getTime(),
+          durationMs: Number(s.duration_ms),
+          by: names[s.snoozed_by] ?? "Teammate",
+        }])));
+
+        setNotes(nts.map<AccountNote>((n) => ({
+          id: n.id, accountId: n.account_id, authorId: n.author_id,
+          authorName: names[n.author_id] ?? "Teammate",
+          body: n.body, createdAt: new Date(n.created_at).getTime(),
+        })));
+
+        setRiskEvents(res.map<RiskEvent>((r) => ({
+          id: r.id, accountId: r.account_id, eventType: r.event_type,
+          previousScore: r.previous_score, newScore: r.new_score,
+          occurredAt: new Date(r.occurred_at).getTime(),
+        })));
+
+        setFollowUps(fus.map<FollowUp>((f) => ({
+          id: f.id, logId: f.log_id, accountId: f.account_id,
+          scheduledAt: new Date(f.scheduled_at).getTime(),
+          completedAt: f.completed_at ? new Date(f.completed_at).getTime() : null,
+        })));
+
+        setOrgGoal(goal ? {
+          id: goal.id, metric: goal.metric, targetPct: goal.target_pct,
+          periodStart: new Date(goal.period_start).getTime(),
+          periodEnd: new Date(goal.period_end).getTime(),
+        } : null);
+
+        setPreferences({ defaultSnoozeHours: pref?.default_snooze_hours ?? 48 });
+      } catch (e) {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "Failed to load workspace data.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const shaped = accs.map((a) => shapeAccount(a, sigs, acts));
-      setAccounts(shaped);
-      setAccountsUpdatedAt(
-        accs.length ? Math.max(...accs.map((a) => new Date(a.updated_at).getTime())) : null,
-      );
-
-      const accountById = new Map(shaped.map((a) => [a.id, a]));
-      setLogs(
-        lgs.map<LogEntry>((l) => {
-          const acc = accountById.get(l.account_id);
-          const action = acc ? [acc.recommended, ...acc.alternates].find((x) => x.id === l.action_id) : undefined;
-          return {
-            id: l.id, accountId: l.account_id, accountTeam: acc?.team ?? "",
-            ownerName: acc?.owner.name ?? "",
-            actionId: l.action_id, actionTitle: action?.title ?? "Intervention",
-            channel: l.channel, at: new Date(l.sent_at).getTime(),
-            by: names[l.sent_by] ?? "Teammate", status: l.status,
-          };
-        }),
-      );
-
-      setSnoozed(new Map(sns.map<[string, SnoozeEntry]>((s) => [s.account_id, {
-        accountId: s.account_id,
-        snoozedAt: new Date(s.snoozed_at).getTime(),
-        durationMs: Number(s.duration_ms),
-        by: names[s.snoozed_by] ?? "Teammate",
-      }])));
-
-      setNotes(nts.map<AccountNote>((n) => ({
-        id: n.id, accountId: n.account_id, authorId: n.author_id,
-        authorName: names[n.author_id] ?? "Teammate",
-        body: n.body, createdAt: new Date(n.created_at).getTime(),
-      })));
-
-      setRiskEvents(res.map<RiskEvent>((r) => ({
-        id: r.id, accountId: r.account_id, eventType: r.event_type,
-        previousScore: r.previous_score, newScore: r.new_score,
-        occurredAt: new Date(r.occurred_at).getTime(),
-      })));
-
-      setFollowUps(fus.map<FollowUp>((f) => ({
-        id: f.id, logId: f.log_id, accountId: f.account_id,
-        scheduledAt: new Date(f.scheduled_at).getTime(),
-        completedAt: f.completed_at ? new Date(f.completed_at).getTime() : null,
-      })));
-
-      setOrgGoal(goal ? {
-        id: goal.id, metric: goal.metric, targetPct: goal.target_pct,
-        periodStart: new Date(goal.period_start).getTime(),
-        periodEnd: new Date(goal.period_end).getTime(),
-      } : null);
-
-      setPreferences({ defaultSnoozeHours: pref?.default_snooze_hours ?? 48 });
-
-      setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [user, isDemo]);
+  }, [user, isDemo, reloadTick]);
 
   const intervene = useCallback(
     async (accountId: string, actionId: string): Promise<LogEntry> => {
