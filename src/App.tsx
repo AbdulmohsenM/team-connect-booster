@@ -36,6 +36,7 @@ const App = () => (
         <SessionProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/" element={<Protected><AtRiskQueuePage /></Protected>} />
             <Route path="/confirmation/:entryId" element={<Protected><InterventionConfirmationPage /></Protected>} />
             <Route path="/snoozed" element={<Protected><SnoozedAccountsPage /></Protected>} />
