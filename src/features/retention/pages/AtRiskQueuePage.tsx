@@ -61,8 +61,8 @@ export default function AtRiskQueuePage() {
   };
 
   const handleSnooze = () => {
-    snooze(active.id, 48);
-    toast(`Snoozed ${active.team} for 48h`, { description: "We'll resurface if risk worsens." });
+    snooze(active.id);
+    toast(`Snoozed ${active.team}`, { description: "We'll resurface if risk worsens." });
     const next = accounts
       .filter((a) => a.id !== active.id && !snoozed.has(a.id) && !intervened.has(a.id))
       .sort((a, b) => b.riskScore - a.riskScore)[0];
