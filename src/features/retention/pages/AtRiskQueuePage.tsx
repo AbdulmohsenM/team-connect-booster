@@ -78,11 +78,13 @@ export default function AtRiskQueuePage() {
             <h1 className="text-lg font-semibold">At-risk accounts</h1>
             <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"><Bell className="size-4" /></button>
           </div>
-          <p className="text-xs text-muted-foreground">Sorted by risk · Updated 4 min ago</p>
+          <p className="text-xs text-muted-foreground">
+            Sorted by risk · {accountsUpdatedAt ? `Updated ${formatRelative(accountsUpdatedAt)}` : "No data yet"}
+          </p>
 
           <div className="mt-4 rounded-lg border border-border bg-card p-3">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-medium">Q2 goal: intervene on 50% of at-risk</span>
+              <span className="font-medium">Quarter goal: intervene on {targetPct}% of at-risk</span>
               <span className="text-muted-foreground">{intervenedCount} / {total}</span>
             </div>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
