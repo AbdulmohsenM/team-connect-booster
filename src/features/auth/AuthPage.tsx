@@ -163,6 +163,13 @@ export default function AuthPage() {
           )}
         </div>
 
+        {serverError && (
+          <Alert variant="destructive" className="py-2.5">
+            <AlertOctagon className="size-4" />
+            <AlertDescription className="text-xs">{serverError}</AlertDescription>
+          </Alert>
+        )}
+
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
         </Button>
