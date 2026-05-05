@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
 import { useRetention } from "@/features/retention";
 import { useSession } from "@/features/auth/SessionProvider";
+import { WorkspaceErrorCard } from "@/features/retention/components/WorkspaceErrorCard";
 
 interface Props {
   children: ReactNode;
@@ -12,7 +13,7 @@ interface Props {
 
 /** Persistent sidebar + content wrapper used on every retention screen. */
 export function AppShell({ children }: Props) {
-  const { accounts, intervened, snoozed, hideAll, setHideAll } = useRetention();
+  const { accounts, intervened, snoozed, hideAll, setHideAll, error, reload, loading } = useRetention();
   const { displayName, user, signOut } = useSession();
   const navigate = useNavigate();
   const needsActionCount = hideAll
@@ -107,7 +108,13 @@ export function AppShell({ children }: Props) {
         </div>
       </aside>
 
-      <main className={cn("flex-1 flex min-w-0")}>{children}</main>
+      <main className={cn("flex-1 flex min-w-0")}>
+        {error ? (
+          <WorkspaceErrorCard message={error} onRetry={reload} retrying={loading} />
+        ) : (
+          children
+        )}
+      </main>
     </div>
   );
 }

@@ -8,10 +8,11 @@ import { useRetention } from "../state/RetentionContext";
 import { useNow } from "../hooks/useNow";
 import { timeRemaining } from "../utils/time";
 import { RiskBadge } from "../components/RiskBadge";
+import { TableRowSkeleton } from "../components/Skeletons";
 
 /** Snoozed Accounts page — table with countdown + Resume action. */
 export default function SnoozedAccountsPage() {
-  const { accounts, snoozed, unsnooze, preferences } = useRetention();
+  const { accounts, snoozed, unsnooze, preferences, loading } = useRetention();
   const now = useNow(30_000);
   const [query, setQuery] = useState("");
 
@@ -75,7 +76,15 @@ export default function SnoozedAccountsPage() {
             <span className="text-right">Resumes in</span>
           </div>
 
-          {items.length === 0 && (
+          {loading && snoozed.size === 0 && (
+            <>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <TableRowSkeleton key={i} columns={5} />
+              ))}
+            </>
+          )}
+
+          {!loading && items.length === 0 && (
             <div className="px-5 py-16 text-center">
               <Clock className="size-8 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm font-medium">No snoozed accounts</p>

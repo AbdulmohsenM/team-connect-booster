@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { enableDemoSession, useSession } from "./SessionProvider";
 
@@ -25,6 +27,7 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session) navigate("/", { replace: true });
@@ -48,14 +51,24 @@ export default function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
+    setServerError(null);
+    if (Object.keys(errors).length > 0) {
+      // Validation failed — keep email, name, AND password populated.
+      return;
+    }
     setLoading(true);
     try {
       enableDemoSession();
       window.dispatchEvent(new Event("plansmith-demo-auth-change"));
+      // Only clear the password on success.
+      setPassword("");
       toast.success("Signed in", { description: "Preview access enabled." });
       navigate("/", { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Auth failed");
+      const msg = err instanceof Error ? err.message : "Auth failed";
+      setServerError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -149,6 +162,13 @@ export default function AuthPage() {
             <p className="text-[11px] text-destructive">{errors.password}</p>
           )}
         </div>
+
+        {serverError && (
+          <Alert variant="destructive" className="py-2.5">
+            <AlertOctagon className="size-4" />
+            <AlertDescription className="text-xs">{serverError}</AlertDescription>
+          </Alert>
+        )}
 
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}

@@ -11,7 +11,7 @@ import { formatRelative } from "../utils/time";
 export default function InterventionConfirmationPage() {
   const { entryId } = useParams();
   const navigate = useNavigate();
-  const { logs, accounts, intervened, snoozed, followUps } = useRetention();
+  const { logs, accounts, intervened, snoozed, followUps, loading } = useRetention();
   const { total, sent: intervenedCount, pct } = useInterventionProgress();
 
   const entry = useMemo(() => logs.find((l) => l.id === entryId), [logs, entryId]);
@@ -24,11 +24,44 @@ export default function InterventionConfirmationPage() {
   }, [accounts, intervened, snoozed]);
 
   useEffect(() => {
-    if (!entry) {
+    if (!loading && !entry) {
       const t = setTimeout(() => navigate("/"), 50);
       return () => clearTimeout(t);
     }
-  }, [entry, navigate]);
+  }, [entry, navigate, loading]);
+
+  if (loading && !entry) {
+    return (
+      <div className="flex-1 min-w-0 overflow-y-auto bg-muted/30">
+        <div className="max-w-3xl mx-auto px-8 py-10">
+          <div className="h-4 w-32 rounded bg-muted animate-pulse mb-6" />
+          <div className="rounded-2xl bg-card border border-border shadow-elevated p-8 space-y-6">
+            <div className="flex items-start gap-5">
+              <div className="size-14 rounded-full bg-muted animate-pulse shrink-0" />
+              <div className="flex-1 space-y-3">
+                <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                <div className="h-6 w-2/3 rounded bg-muted animate-pulse" />
+                <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden border border-border">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-card p-4 space-y-2">
+                  <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+                  <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-12 rounded-lg bg-muted/60 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!entry || !account) return null;
 

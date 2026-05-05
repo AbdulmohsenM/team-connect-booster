@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Navigate as RouterNavigate } from "react-router-dom";
-import { Bell, Search, Filter } from "lucide-react";
+import { Link, useNavigate, Navigate as RouterNavigate } from "react-router-dom";
+import { Bell, Search, Filter, Inbox, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRetention } from "../state/RetentionContext";
 import { useAccountQueue, useInterventionProgress, type QueueFilter } from "../hooks/useAccountQueue";
@@ -9,6 +10,7 @@ import { useDetailLoading } from "../hooks/useDetailLoading";
 import { AccountRow } from "../components/AccountRow";
 import { AccountDetailPanel } from "../components/AccountDetailPanel";
 import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
+import { AccountRowSkeleton } from "../components/Skeletons";
 import { formatRelative } from "../utils/time";
 import { useSession } from "@/features/auth/SessionProvider";
 
@@ -37,9 +39,23 @@ export default function AtRiskQueuePage() {
 
   if (loading && accounts.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-        Loading at-risk queue…
-      </div>
+      <>
+        <section className="w-[440px] shrink-0 border-r border-border flex flex-col bg-muted/30">
+          <div className="px-6 pt-6 pb-4 bg-background border-b border-border space-y-3">
+            <div className="h-5 w-40 rounded bg-muted animate-pulse" />
+            <div className="h-3 w-56 rounded bg-muted animate-pulse" />
+            <div className="h-16 rounded-lg bg-muted/60 animate-pulse" />
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <AccountRowSkeleton key={i} />
+            ))}
+          </div>
+        </section>
+        <section className="flex-1 min-w-0">
+          <AccountDetailPanelSkeleton />
+        </section>
+      </>
     );
   }
 
@@ -51,8 +67,30 @@ export default function AtRiskQueuePage() {
   const active = accounts.find((a) => a.id === activeId) ?? visible[0] ?? accounts[0];
   if (!active) {
     return (
-      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-        No accounts yet. Seed the database to begin.
+      <div className="flex-1 flex items-center justify-center bg-muted/30 px-4">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+          <div className="mx-auto size-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Inbox className="size-6 text-primary" />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold">No accounts in your workspace yet</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Once accounts sync from your data sources, the at-risk queue will populate here automatically.
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <a
+              href="https://docs.lovable.dev"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-primary hover:underline"
+            >
+              Read setup docs
+            </a>
+            <span className="text-muted-foreground">·</span>
+            <Link to="/all-clear" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+              See all-clear preview <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
