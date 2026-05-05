@@ -134,8 +134,11 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
     setOrgGoal(DEMO_ORG_GOAL);
     setPreferences(DEFAULT_PREFS);
     setHideAll(false);
+    setError(null);
     setLoading(false);
   }, [isDemo, user]);
+
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
   useEffect(() => {
     if (isDemo) return;
