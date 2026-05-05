@@ -108,7 +108,13 @@ export function AppShell({ children }: Props) {
         </div>
       </aside>
 
-      <main className={cn("flex-1 flex min-w-0")}>{children}</main>
+      <main className={cn("flex-1 flex min-w-0")}>
+        {error ? (
+          <WorkspaceErrorCard message={error} onRetry={reload} retrying={loading} />
+        ) : (
+          children
+        )}
+      </main>
     </div>
   );
 }
