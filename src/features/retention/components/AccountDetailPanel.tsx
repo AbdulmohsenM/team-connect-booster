@@ -338,7 +338,7 @@ export function AccountDetailPanel({ account, intervened, log, notes, riskEvent,
         ) : (
           <div className="flex items-center justify-between gap-3">
             <button onClick={onSnooze} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors">
-              <Clock className="size-3.5" /> Snooze 48h
+              <Clock className="size-3.5" /> Snooze {snoozeHours}h
             </button>
             <Button size="lg" onClick={handleSend} disabled={sending} className="gap-2 shadow-elevated">
               {sending ? "Sending…" : <>Send intervention <Send className="size-4" /></>}
