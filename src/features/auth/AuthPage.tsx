@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { enableDemoSession } from "./SessionProvider";
+import { useSession } from "./SessionProvider";
 
 /**
  * Minimal email/password auth gate. RLS on every retention table requires an
@@ -14,11 +15,16 @@ const DEMO_NAME = "Jordan Kim";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const { session } = useSession();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (session) navigate("/", { replace: true });
+  }, [session, navigate]);
 
   const useDemo = () => {
     setMode("signin");
