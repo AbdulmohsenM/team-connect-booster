@@ -63,6 +63,7 @@ const SessionContext = createContext<Ctx | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [demoEnabled, setDemoEnabled] = useState(readDemoEnabled);
+  const wasSignedIn = useRef(demoEnabled);
 
   useEffect(() => {
     const sync = () => setDemoEnabled(readDemoEnabled());
@@ -73,6 +74,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("plansmith-demo-auth-change", sync as EventListener);
     };
   }, []);
+
+  // Listen for real Supabase auth events too — covers token refresh failures
+  // and remote sign-outs, which surface as SIGNED_OUT.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT" && wasSignedIn.current && readDemoEnabled()) {
+        clearDemoSession();
+        window.dispatchEvent(new Event("plansmith-demo-auth-change"));
+        toast.error("Your session expired", {
+          description: "Please sign in again.",
+        });
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    wasSignedIn.current = demoEnabled;
+  }, [demoEnabled]);
 
   const session = useMemo(() => (demoEnabled ? createDemoSession() : null), [demoEnabled]);
   const displayName = session?.user.user_metadata?.display_name ?? DEMO_DISPLAY_NAME;
