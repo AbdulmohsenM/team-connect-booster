@@ -31,24 +31,34 @@ export default function AuthPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    // Always sign in as the demo account, regardless of what was typed.
+    const effectiveEmail = email.trim() || DEMO_EMAIL;
+    const effectivePassword = password || DEMO_PASSWORD;
+    const effectiveName = name.trim() || DEMO_NAME;
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
+      let { error } = await supabase.auth.signInWithPassword({
+        email: effectiveEmail,
+        password: effectivePassword,
+      });
+
+      // If the demo user doesn't exist yet, create it then sign in.
+      if (error) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: effectiveEmail,
+          password: effectivePassword,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
-            data: { display_name: name || email.split("@")[0] },
+            data: { display_name: effectiveName },
           },
         });
+        if (signUpError && !/registered/i.test(signUpError.message)) throw signUpError;
+        ({ error } = await supabase.auth.signInWithPassword({
+          email: effectiveEmail,
+          password: effectivePassword,
+        }));
         if (error) throw error;
-        toast.success("Account created", { description: "Check your inbox to confirm, then sign in." });
-        setMode("signin");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate("/", { replace: true });
       }
+      navigate("/", { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Auth failed");
     } finally {
