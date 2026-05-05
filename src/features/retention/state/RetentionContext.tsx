@@ -115,6 +115,8 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFS);
   const [accountsUpdatedAt, setAccountsUpdatedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
   const [hideAll, setHideAll] = useState(false);
   const [forceFailNext, setForceFailNext] = useState(false);
 
