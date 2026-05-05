@@ -204,8 +204,10 @@ export function AccountDetailPanel({ account, intervened, log, notes, riskEvent,
             <div className="flex items-center gap-2 text-xs mt-3">
               <span className="text-muted-foreground">Owner</span>
               <div className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5">
-                <div className="size-4 rounded-full primary-gradient text-primary-foreground text-[9px] font-semibold flex items-center justify-center">JK</div>
-                <span className="font-medium">Jordan Kim</span>
+                <div className="size-4 rounded-full primary-gradient text-primary-foreground text-[9px] font-semibold flex items-center justify-center">
+                  {(currentUserName || "U").split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+                </div>
+                <span className="font-medium">{currentUserName || "You"}</span>
                 <span className="text-muted-foreground">· you</span>
               </div>
             </div>
@@ -215,7 +217,7 @@ export function AccountDetailPanel({ account, intervened, log, notes, riskEvent,
             <ol className="relative">
               {log.map((entry, i) => {
                 const Icon = channelIcon[entry.channel];
-                const isYou = entry.by === "Jordan Kim";
+                const isYou = entry.by === currentUserName;
                 return (
                   <li key={`log-${i}`} className="flex gap-3 px-4 py-3.5 border-b border-border last:border-b-0 bg-success-soft/30">
                     <div className="relative shrink-0">
@@ -233,41 +235,46 @@ export function AccountDetailPanel({ account, intervened, log, notes, riskEvent,
                         <span className="text-muted-foreground">{formatRelative(entry.at)}</span>
                       </p>
                       <p className="text-sm text-foreground mt-0.5">{entry.actionTitle}</p>
-                      <p className="text-xs text-muted-foreground mt-1 capitalize">via {entry.channel} · awaiting response</p>
+                      <p className="text-xs text-muted-foreground mt-1 capitalize">via {entry.channel} · {entry.status.toLowerCase()}</p>
                     </div>
                   </li>
                 );
               })}
 
-              <li className="flex gap-3 px-4 py-3.5 border-b border-border">
-                <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
-                  AI
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    <span className="font-semibold">Risk model</span>
-                    <span className="text-muted-foreground"> flagged this account · {Math.max(2, account.daysSinceSignup - 4)}h ago</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Score crossed threshold ({account.riskScore}). Routed to Jordan Kim (Growth PM).</p>
-                </div>
-              </li>
-              <li className="flex gap-3 px-4 py-3.5">
-                <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
-                  CS
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    <span className="font-semibold">Casey Singh</span>
-                    <span className="text-muted-foreground"> (CSM) added a note · 1d ago</span>
-                  </p>
-                  <p className="text-xs text-foreground mt-0.5 italic">"Saw the same pattern on three other accounts this week. Worth a tighter playbook."</p>
-                </div>
-              </li>
+              {riskEvent && (
+                <li className="flex gap-3 px-4 py-3.5 border-b border-border">
+                  <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
+                    AI
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">
+                      <span className="font-semibold">Risk model</span>
+                      <span className="text-muted-foreground"> flagged this account · {formatRelative(riskEvent.occurredAt)}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Score crossed threshold ({riskEvent.newScore}).</p>
+                  </div>
+                </li>
+              )}
+
+              {notes.map((n) => (
+                <li key={n.id} className="flex gap-3 px-4 py-3.5 border-b border-border last:border-b-0">
+                  <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
+                    {n.authorName.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">
+                      <span className="font-semibold">{n.authorName}</span>
+                      <span className="text-muted-foreground"> added a note · {formatRelative(n.createdAt)}</span>
+                    </p>
+                    <p className="text-xs text-foreground mt-0.5 italic">"{n.body}"</p>
+                  </div>
+                </li>
+              ))}
             </ol>
 
             {log.length > 0 && (
               <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-border bg-muted/40 text-xs">
-                <span className="text-muted-foreground">Next: follow up if no response in 48h</span>
+                <span className="text-muted-foreground">Next: follow up if no response in {snoozeHours}h</span>
                 <button className="font-medium text-primary hover:underline">Schedule follow-up</button>
               </div>
             )}
