@@ -1,14 +1,15 @@
 import { ReactNode } from "react";
-import { NavLink } from "@/components/NavLink";
-import { useRetention } from "@/state/RetentionContext";
+import { useNavigate } from "react-router-dom";
 import { ShieldAlert, Clock, History as HistoryIcon, Inbox, LayoutGrid, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { NavLink } from "./NavLink";
+import { useRetention } from "@/features/retention";
 
 interface Props {
   children: ReactNode;
 }
 
+/** Persistent sidebar + content wrapper used on every retention screen. */
 export function AppShell({ children }: Props) {
   const { accounts, intervened, snoozed, hideAll, setHideAll } = useRetention();
   const navigate = useNavigate();
