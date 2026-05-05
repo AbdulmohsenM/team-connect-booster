@@ -70,7 +70,7 @@ export default function InterventionConfirmationPage() {
             </div>
             <div className="bg-card p-4">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Time</p>
-              <p className="text-sm font-medium mt-1.5">just now</p>
+              <p className="text-sm font-medium mt-1.5">{formatRelative(entry.at)}</p>
             </div>
           </div>
 
