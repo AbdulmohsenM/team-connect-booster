@@ -1,160 +1,124 @@
-# Plansmith Retention Prototype
+# Plansmith Retention
 
-A clickable prototype for a B2B project management SaaS retention intervention workflow.
+A clickable PM-facing churn-intervention console for a B2B project management SaaS.
 
----
-
-## Hypothesis
-
-Surfacing **churn risk score**, **why**, and **suggested action** in the PM dashboard leads to PMs intervening within 48 hours and reducing inactive-at-risk users by ~30% within 7 days.
-
-### Supporting Insight
-Users who invite a teammate in the first 3 days retain at **3x the rate** (68% vs 22%). Only **12%** of new users send an invite in that window. The core signal: **solo workspaces = high churn risk**.
+> See [`PRD.md`](./PRD.md) for the product brief, hypothesis, and validation criteria, and [`PROMPTS.md`](./PROMPTS.md) for the build iterations.
 
 ---
 
-## Scenario
-
-**Company:** B2B project management SaaS  
-**Stage:** Series A, 18 months old  
-**Scale:** 5,000 paying teams, $4.2M ARR  
-**Problem:** 30% of new customers churn within 90 days — a rate that threatens Series B fundraising  
-**Goal:** One quarter to show measurable churn reduction
-
-**The Board's ultimatum:** Improve the 90-day retention rate or the Series B is off the table.
-
----
-
-## Key Screens
-
-### 1. At-Risk Accounts Queue
-- Filterable workflow queue: **Needs action** | **Snoozed** | **Intervened**
-- Accounts sorted by risk score (0-100), highest first
-- Real-time progress counter toward Q2 intervention goal
-- Account cards show: team name, risk score, top churn reason, days since signup
-
-### 2. Account Detail Panel
-- **Risk breakdown:** Weighted behavioral signals explaining the score
-- **Voice of customer:** Real user quote from support/survey data
-- **Recommended action:** Context-aware intervention with expected lift (%)
-- **Alternatives:** 1-2 fallback actions with different trade-offs
-- **Activity & ownership timeline:** Historical context + live intervention log
-
-### 3. Intervention Flow
-- PM selects action → confirmation toast
-- Account moves to "Intervened" bucket
-- Timeline logs: who acted, when, via what channel, and current status
-- Progress counter updates live
-
----
-
-## User Flow
+## The Flow
 
 ```
-1. PM opens Retention workspace ← Sees 5 accounts needing action
-   ↓
-2. Clicks highest-risk account ← Sees why + what to do
-   ↓
-3. Reviews signals + customer quote ← Validates context
-   ↓
-4. Sends recommended intervention ← 1-click action
-   ↓
-5. Next highest-risk auto-selects ← Maintains momentum
-   ↓
-6. Returns later to check "Intervened" ← Tracks responses/follow-ups
+┌─ AppShell (sidebar nav, persistent on every screen)
+│
+├── /                       At-Risk Queue          ← primary workspace
+│       ↓ click account
+│       Account Detail Panel (right side)
+│       ↓ Send intervention (700ms async, 12% simulated failure)
+│   ┌── success ───────────────────────────────┐
+│   │   ↓                                       │
+│   │  /confirmation/:entryId                   │
+│   │  Intervention Confirmation                │
+│   │   ↓ "Next at-risk: {team}"                │
+│   └─→ back to /                               │
+│   failure → inline error banner (Retry / Choose another action)
+│
+├── /snoozed     Snoozed Accounts (countdown + Resume)
+├── /history     Intervention History (filterable audit log)
+└── /all-clear   All Clear (empty / inbox-zero state)
 ```
 
-**Key interaction patterns:**
-- **Snooze:** Temporarily remove from queue (48h), auto-select next account
-- **Filter switching:** Track progress across workflow stages
-- **Activity timeline:** Understand what teammates already did
+Operator: **Jordan Kim, PM · Growth** (single hardcoded user).
 
 ---
 
-## Main Build Decisions
+## Project Structure
 
-### 1. Queue-over-Dashboard Design
-- Traditional dashboards are passive; this uses a **zero-inbox mental model**
-- PMs work through a prioritized queue rather than scanning charts
-- Maintains momentum with auto-advance after each action
+The codebase is grouped by **feature**, with a thin app shell on the outside. Data logic and display components are kept separate so screens stay readable.
 
-### 2. Real Customer Voices
-- Every account includes an actual user quote (support, survey, interview)
-- Reduces abstraction — PMs intervene on people, not metrics
-- Source attribution adds credibility and context
+```
+src/
+├── App.tsx                       # router + providers
+├── main.tsx                      # entry
+├── index.css                     # design tokens (HSL semantic)
+│
+├── layout/                       # cross-feature layout primitives
+│   ├── AppShell.tsx              # persistent sidebar wrapper
+│   └── NavLink.tsx               # router NavLink with activeClassName
+│
+├── features/
+│   └── retention/                # everything churn-intervention lives here
+│       ├── index.ts              # public API (provider, pages, types)
+│       │
+│       ├── data/                 # ── DATA LAYER ─────────────────────
+│       │   ├── types.ts          # Account, Action, LogEntry, ...
+│       │   └── accounts.ts       # mock seed of 5 at-risk accounts
+│       │
+│       ├── state/                # ── STATE LAYER ────────────────────
+│       │   └── RetentionContext.tsx   # intervened/snoozed/logs + intervene() stub
+│       │
+│       ├── hooks/                # ── DERIVED DATA / SIDE EFFECTS ────
+│       │   ├── useAccountQueue.ts     # filter, sort, counts, next-at-risk
+│       │   ├── useDetailLoading.ts    # 500ms skeleton trigger on selection
+│       │   └── useNow.ts              # ticking clock for snooze countdown
+│       │
+│       ├── utils/                # ── PURE HELPERS ───────────────────
+│       │   ├── time.ts                # formatRelative, formatTimestamp, timeRemaining
+│       │   └── channels.ts            # channel → icon lookup
+│       │
+│       ├── components/           # ── DISPLAY COMPONENTS ─────────────
+│       │   ├── RiskBadge.tsx          # badge + score ring
+│       │   ├── AccountRow.tsx         # one row in the queue
+│       │   ├── AccountDetailPanel.tsx # the main right-hand panel
+│       │   └── AccountDetailPanelSkeleton.tsx
+│       │
+│       └── pages/                # ── ROUTE-LEVEL SCREENS ────────────
+│           ├── AtRiskQueuePage.tsx
+│           ├── InterventionConfirmationPage.tsx
+│           ├── SnoozedAccountsPage.tsx
+│           ├── AllClearPage.tsx
+│           └── InterventionHistoryPage.tsx
+│
+├── components/ui/                # shadcn/ui primitives (unchanged)
+├── pages/NotFound.tsx            # global 404
+├── lib/utils.ts                  # cn() helper
+└── hooks/                        # generic hooks (use-mobile, use-toast)
+```
 
-### 3. Domain-Specific Risk Signals
-- Not generic "churn risk" — shows **why** (solo workspace, stalled invites, zero tasks)
-- Weights on each signal explain score calculation
-- Industry benchmarks referenced where relevant
+### Layering rules
 
-### 4. Actionable Recommendations
-- Each intervention includes:
-  - **What:** Specific action title
-  - **How:** Channel (in-app nudge, email, Slack)
-  - **Preview:** Exact copy/content preview
-  - **Expected lift:** Data-backed outcome prediction
-- Alternatives provided for nuanced situations
+- **`data/`** — types and mock fixtures only. No React.
+- **`state/`** — single React context + the `intervene()` stub (async, simulated latency, simulated failure rate).
+- **`hooks/`** — derived data (filter/sort/count) and side effects (tickers, loading flags). Pages call hooks; components don't.
+- **`utils/`** — pure functions, no React, no state.
+- **`components/`** — presentation only. Receive props, render JSX. No `useRetention()` calls.
+- **`pages/`** — wire context + hooks → components. The only place data and display meet.
 
-### 5. Lightweight State Management
-- No backend required for prototype testing
-- `useState` for intervention/snooze tracking
-- `useMemo` for reactive count updates
-- Data persisted in session; resets on reload
+### Naming map (rename log)
 
-### 6. Design System
-- Tailwind CSS + shadcn/ui components
-- Semantic color tokens (HSL) for theming
-- `primary-gradient` accent for brand consistency
-- Card-based layout for scannable information
+| Old name | New name | Location |
+|---|---|---|
+| `pages/Index.tsx` | **At-Risk Queue** → `AtRiskQueuePage.tsx` | `features/retention/pages/` |
+| `components/AccountDetail.tsx` | **Account Detail Panel** → `AccountDetailPanel.tsx` | `features/retention/components/` |
+| `components/AccountDetailSkeleton.tsx` | `AccountDetailPanelSkeleton.tsx` | `features/retention/components/` |
+| `pages/Confirmation.tsx` | **Intervention Confirmation** → `InterventionConfirmationPage.tsx` | `features/retention/pages/` |
+| `pages/Snoozed.tsx` | **Snoozed Accounts** → `SnoozedAccountsPage.tsx` | `features/retention/pages/` |
+| `pages/AllClear.tsx` | **All Clear** → `AllClearPage.tsx` | `features/retention/pages/` |
+| `pages/History.tsx` | **Intervention History** → `InterventionHistoryPage.tsx` | `features/retention/pages/` |
+
+Pages are now imported from a single barrel: `@/features/retention`.
 
 ---
 
 ## Tech Stack
 
-- **Framework:** React 18 + TypeScript
-- **Build:** Vite 5
-- **Styling:** Tailwind CSS v3
-- **Components:** shadcn/ui
-- **Icons:** Lucide React
-- **Toast notifications:** Sonner
+React 18 · TypeScript · Vite 5 · Tailwind v3 · shadcn/ui · React Router · Sonner · Lucide.
 
----
+No backend. State is in-memory and resets on reload.
 
-## Test the Hypothesis
-
-1. **Simulate PM workflow:** Send interventions on 2-3 accounts
-2. **Observe queue behavior:** Confirm filters update live
-3. **Review activity timeline:** Check intervention logging
-4. **Validate UX:** Does this feel like a workflow tool, not a dashboard?
-
----
-
-## Sample Accounts
-
-| Account | Risk | Core Issue | Recommended Action |
-|---------|------|------------|-------------------|
-| **Acme Robotics** | 92 | 0 of 14 seats invited after 6 days | 1-click invite link for Priya |
-| **Northwind Studio** | 78 | Invite sent, never accepted, owner stalled | Resend + ping designer directly |
-| **Globex Logistics** | 71 | $1,760/mo for unused seats, owner overwhelmed | Team rollout kit + white-glove offer |
-| **Fern & Co.** | 64 | Blank dashboard bounce | Auto-load starter template |
-| **Vertex Capital** | 58 | Recovering — 3 invites sent | Monitor, avoid intervention fatigue |
-
----
-
-## Running Locally
+## Run locally
 
 ```bash
-# Install dependencies
 bun install
-
-# Start dev server
-bun dev
-
-# Build for production
-bun run build
+bun run dev
 ```
-
----
-
-*Built with Lovable — a product prototype for churn intervention workflows.*
