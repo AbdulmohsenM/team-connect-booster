@@ -9,6 +9,8 @@ import { useDetailLoading } from "../hooks/useDetailLoading";
 import { AccountRow } from "../components/AccountRow";
 import { AccountDetailPanel } from "../components/AccountDetailPanel";
 import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
+import { formatRelative } from "../utils/time";
+import { useSession } from "@/features/auth/SessionProvider";
 
 /**
  * At-Risk Queue page — left: prioritized queue with workflow filters,
@@ -16,11 +18,12 @@ import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkel
  */
 export default function AtRiskQueuePage() {
   const navigate = useNavigate();
-  const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll, loading } = useRetention();
+  const { accounts, intervened, snoozed, logs, notes, riskEvents, preferences, intervene, snooze, hideAll, loading, accountsUpdatedAt } = useRetention();
+  const { displayName } = useSession();
 
   const [filter, setFilter] = useState<QueueFilter>("needs-action");
   const { visible, counts, needsAction } = useAccountQueue(filter);
-  const { total, sent: intervenedCount, pct } = useInterventionProgress();
+  const { total, sent: intervenedCount, pct, targetPct } = useInterventionProgress();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const loadingDetail = useDetailLoading(activeId, 500);
@@ -61,8 +64,8 @@ export default function AtRiskQueuePage() {
   };
 
   const handleSnooze = () => {
-    snooze(active.id, 48);
-    toast(`Snoozed ${active.team} for 48h`, { description: "We'll resurface if risk worsens." });
+    snooze(active.id);
+    toast(`Snoozed ${active.team}`, { description: "We'll resurface if risk worsens." });
     const next = accounts
       .filter((a) => a.id !== active.id && !snoozed.has(a.id) && !intervened.has(a.id))
       .sort((a, b) => b.riskScore - a.riskScore)[0];
@@ -78,11 +81,13 @@ export default function AtRiskQueuePage() {
             <h1 className="text-lg font-semibold">At-risk accounts</h1>
             <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"><Bell className="size-4" /></button>
           </div>
-          <p className="text-xs text-muted-foreground">Sorted by risk · Updated 4 min ago</p>
+          <p className="text-xs text-muted-foreground">
+            Sorted by risk · {accountsUpdatedAt ? `Updated ${formatRelative(accountsUpdatedAt)}` : "No data yet"}
+          </p>
 
           <div className="mt-4 rounded-lg border border-border bg-card p-3">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-medium">Q2 goal: intervene on 50% of at-risk</span>
+              <span className="font-medium">Quarter goal: intervene on {targetPct}% of at-risk</span>
               <span className="text-muted-foreground">{intervenedCount} / {total}</span>
             </div>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -164,6 +169,10 @@ export default function AtRiskQueuePage() {
             account={active}
             intervened={intervened.has(active.id)}
             log={activeLogs}
+            notes={notes.filter((n) => n.accountId === active.id)}
+            riskEvent={riskEvents.find((r) => r.accountId === active.id && r.eventType === "flagged") ?? null}
+            currentUserName={displayName || "You"}
+            snoozeHours={preferences.defaultSnoozeHours}
             onIntervene={handleIntervene}
             onSnooze={handleSnooze}
             onClose={() => {

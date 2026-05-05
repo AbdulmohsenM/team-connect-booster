@@ -5,10 +5,29 @@ import { useRetention } from "../state/RetentionContext";
 
 /** All Clear page — empty/inbox-zero state for the at-risk queue. */
 export default function AllClearPage() {
-  const { intervened, snoozed, logs, hideAll, setHideAll } = useRetention();
+  const { intervened, snoozed, logs, riskEvents, hideAll, setHideAll } = useRetention();
   const intervenedCount = intervened.size;
   const snoozedCount = snoozed.size;
   const recent = logs.slice(0, 3);
+
+  // Interventions sent this quarter (from logs.at).
+  const quarterStart = (() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3, 1).getTime();
+  })();
+  const quarterIntervenedCount = logs.filter((l) => l.at >= quarterStart).length;
+
+  // Week-over-week at-risk change from risk_events.
+  const now = Date.now();
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const flagged = riskEvents.filter((r) => r.eventType === "flagged");
+  const thisWeek = flagged.filter((r) => r.occurredAt >= now - weekMs).length;
+  const priorWeek = flagged.filter((r) => r.occurredAt >= now - 2 * weekMs && r.occurredAt < now - weekMs).length;
+  const weekOverWeek = priorWeek === 0
+    ? (thisWeek === 0 ? 0 : 100)
+    : Math.round(((thisWeek - priorWeek) / priorWeek) * 100);
+  const weekOverWeekLabel = `${weekOverWeek > 0 ? "+" : ""}${weekOverWeek}%`;
+  const weekOverWeekIsImproving = weekOverWeek <= 0;
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-muted/30">
@@ -33,7 +52,7 @@ export default function AllClearPage() {
               <Sparkles className="size-3.5" />
               <p className="text-[10px] uppercase tracking-wider font-semibold">Interventions sent</p>
             </div>
-            <p className="text-3xl font-semibold mt-2 tabular-nums">{intervenedCount}</p>
+            <p className="text-3xl font-semibold mt-2 tabular-nums">{quarterIntervenedCount}</p>
             <p className="text-xs text-muted-foreground mt-1">this quarter</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
@@ -45,11 +64,11 @@ export default function AllClearPage() {
             <p className="text-xs text-muted-foreground mt-1">resume in &lt; 48h</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2 text-success">
+            <div className={cn("flex items-center gap-2", weekOverWeekIsImproving ? "text-success" : "text-warning")}>
               <TrendingDown className="size-3.5" />
               <p className="text-[10px] uppercase tracking-wider font-semibold">At-risk this week</p>
             </div>
-            <p className="text-3xl font-semibold mt-2 tabular-nums text-success">−32%</p>
+            <p className={cn("text-3xl font-semibold mt-2 tabular-nums", weekOverWeekIsImproving ? "text-success" : "text-warning")}>{weekOverWeekLabel}</p>
             <p className="text-xs text-muted-foreground mt-1">vs prior 7 days</p>
           </div>
         </div>

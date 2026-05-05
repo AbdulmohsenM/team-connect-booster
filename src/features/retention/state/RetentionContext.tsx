@@ -1,13 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/features/auth/SessionProvider";
-import type { Account, Action, Channel, LogEntry, Signal, SnoozeEntry } from "../data/types";
+import type {
+  Account, Action, Channel, LogEntry, Signal, SnoozeEntry,
+  AccountNote, RiskEvent, FollowUp, OrgGoal, UserPreferences,
+} from "../data/types";
 
 type Ctx = {
   accounts: Account[];
   intervened: Set<string>;
   snoozed: Map<string, SnoozeEntry>;
   logs: LogEntry[];
+  notes: AccountNote[];
+  riskEvents: RiskEvent[];
+  followUps: FollowUp[];
+  orgGoal: OrgGoal | null;
+  preferences: UserPreferences;
+  accountsUpdatedAt: number | null;
   loading: boolean;
   intervene: (accountId: string, actionId: string) => Promise<LogEntry>;
   snooze: (accountId: string, hours?: number) => Promise<void>;
@@ -20,8 +29,7 @@ type Ctx = {
 
 const RetentionContext = createContext<Ctx | null>(null);
 
-const FAILURE_RATE = 0; // disabled — real backend now decides success
-const SEND_LATENCY_MS = 400;
+const FAILURE_RATE = 0;
 
 type AccountRow = {
   id: string; team: string; plan: string; seats: number;
@@ -29,11 +37,17 @@ type AccountRow = {
   days_since_signup: number; risk_score: number;
   trend: "up" | "down" | "flat"; top_reason: string; mrr: number;
   quote_text: string | null; quote_source: string | null; quote_channel: string | null;
+  updated_at: string;
 };
 type SignalRow = { id: string; account_id: string; label: string; detail: string; weight: "high" | "med" | "low"; position: number };
 type ActionRow = { id: string; account_id: string; title: string; preview: string; channel: Channel; expected_lift: string; is_recommended: boolean; position: number };
 type LogRow = { id: string; account_id: string; action_id: string; channel: Channel; sent_at: string; sent_by: string; status: "Awaiting response" | "Responded" | "Re-engaged" };
 type SnoozeRow = { id: string; account_id: string; duration_ms: number; snoozed_at: string; snoozed_by: string };
+type NoteRow = { id: string; account_id: string; author_id: string; body: string; created_at: string };
+type RiskEventRow = { id: string; account_id: string; event_type: "flagged" | "score_change" | "cleared"; previous_score: number | null; new_score: number; occurred_at: string };
+type FollowUpRow = { id: string; log_id: string; account_id: string; scheduled_at: string; completed_at: string | null };
+type OrgGoalRow = { id: string; metric: string; target_pct: number; period_start: string; period_end: string };
+type PrefRow = { user_id: string; default_snooze_hours: number; notification_settings: unknown };
 
 function shapeAccount(a: AccountRow, signals: SignalRow[], actions: ActionRow[]): Account {
   const sigs: Signal[] = signals
@@ -42,66 +56,65 @@ function shapeAccount(a: AccountRow, signals: SignalRow[], actions: ActionRow[])
     .map((s) => ({ label: s.label, detail: s.detail, weight: s.weight }));
   const acts = actions
     .filter((x) => x.account_id === a.id)
-    .sort((x, y) => x.position - y.position)
-    .map<Action>((x) => ({
-      id: x.id,
-      title: x.title,
-      preview: x.preview,
-      channel: x.channel,
-      expectedLift: x.expected_lift,
-    }));
-  const recommended =
-    acts.find((_, i) => actions.find((r) => r.id === acts[i].id)?.is_recommended) ?? acts[0];
-  const alternates = acts.filter((x) => x.id !== recommended?.id);
+    .sort((x, y) => x.position - y.position);
+  const recRow = acts.find((x) => x.is_recommended) ?? acts[0];
+  const toAction = (x: ActionRow): Action => ({
+    id: x.id, title: x.title, preview: x.preview, channel: x.channel, expectedLift: x.expected_lift,
+  });
+  const recommended = recRow ? toAction(recRow) : { id: "", title: "", preview: "", channel: "in-app nudge" as Channel, expectedLift: "" };
+  const alternates = acts.filter((x) => x.id !== recRow?.id).map(toAction);
   return {
-    id: a.id,
-    team: a.team,
-    plan: a.plan,
-    seats: a.seats,
+    id: a.id, team: a.team, plan: a.plan, seats: a.seats,
     owner: { name: a.owner_name, role: a.owner_role, avatar: a.owner_avatar ?? "" },
-    daysSinceSignup: a.days_since_signup,
-    riskScore: a.risk_score,
-    trend: a.trend,
-    topReason: a.top_reason,
-    mrr: Number(a.mrr),
+    daysSinceSignup: a.days_since_signup, riskScore: a.risk_score, trend: a.trend,
+    topReason: a.top_reason, mrr: Number(a.mrr),
     signals: sigs,
-    quote: {
-      text: a.quote_text ?? "",
-      source: a.quote_source ?? "",
-      channel: a.quote_channel ?? "",
-    },
-    recommended: recommended ?? { id: "", title: "", preview: "", channel: "in-app nudge", expectedLift: "" },
-    alternates,
+    quote: { text: a.quote_text ?? "", source: a.quote_source ?? "", channel: a.quote_channel ?? "" },
+    recommended, alternates,
   };
 }
+
+const DEFAULT_PREFS: UserPreferences = { defaultSnoozeHours: 48 };
 
 export function RetentionProvider({ children }: { children: ReactNode }) {
   const { user, displayName } = useSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [snoozed, setSnoozed] = useState<Map<string, SnoozeEntry>>(new Map());
+  const [notes, setNotes] = useState<AccountNote[]>([]);
+  const [riskEvents, setRiskEvents] = useState<RiskEvent[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [orgGoal, setOrgGoal] = useState<OrgGoal | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFS);
+  const [accountsUpdatedAt, setAccountsUpdatedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [hideAll, setHideAll] = useState(false);
   const [forceFailNext, setForceFailNext] = useState(false);
-  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
 
   const intervened = useMemo(() => new Set(logs.map((l) => l.accountId)), [logs]);
 
-  // Initial fetch — gated by an authenticated session because of RLS.
   useEffect(() => {
     if (!user) {
-      setAccounts([]); setLogs([]); setSnoozed(new Map()); setLoading(false);
+      setAccounts([]); setLogs([]); setSnoozed(new Map());
+      setNotes([]); setRiskEvents([]); setFollowUps([]);
+      setOrgGoal(null); setPreferences(DEFAULT_PREFS);
+      setAccountsUpdatedAt(null); setLoading(false);
       return;
     }
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [accRes, sigRes, actRes, logRes, snoozeRes] = await Promise.all([
+      const [accRes, sigRes, actRes, logRes, snoozeRes, noteRes, riskRes, fuRes, goalRes, prefRes] = await Promise.all([
         supabase.from("accounts").select("*").order("risk_score", { ascending: false }),
         supabase.from("signals").select("*"),
         supabase.from("actions").select("*"),
         supabase.from("intervention_logs").select("*").order("sent_at", { ascending: false }),
         supabase.from("snoozes").select("*"),
+        (supabase.from as any)("account_notes").select("*").order("created_at", { ascending: false }),
+        (supabase.from as any)("risk_events").select("*").order("occurred_at", { ascending: false }),
+        (supabase.from as any)("follow_ups").select("*"),
+        (supabase.from as any)("org_goals").select("*").eq("metric", "intervention_coverage_pct").order("period_start", { ascending: false }).limit(1).maybeSingle(),
+        (supabase.from as any)("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
       if (cancelled) return;
 
@@ -110,18 +123,28 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       const acts = (actRes.data ?? []) as ActionRow[];
       const lgs = (logRes.data ?? []) as LogRow[];
       const sns = (snoozeRes.data ?? []) as SnoozeRow[];
+      const nts = (noteRes.data ?? []) as NoteRow[];
+      const res = (riskRes.data ?? []) as RiskEventRow[];
+      const fus = (fuRes.data ?? []) as FollowUpRow[];
+      const goal = (goalRes.data ?? null) as OrgGoalRow | null;
+      const pref = (prefRes.data ?? null) as PrefRow | null;
 
-      // Resolve profile display names for "by" labels.
-      const userIds = Array.from(new Set([...lgs.map((l) => l.sent_by), ...sns.map((s) => s.snoozed_by)]));
+      const userIds = Array.from(new Set([
+        ...lgs.map((l) => l.sent_by),
+        ...sns.map((s) => s.snoozed_by),
+        ...nts.map((n) => n.author_id),
+      ]));
       let names: Record<string, string> = {};
       if (userIds.length) {
         const { data: profs } = await supabase.from("profiles").select("id,display_name").in("id", userIds);
         names = Object.fromEntries((profs ?? []).map((p) => [p.id, p.display_name]));
       }
-      setProfileNames(names);
 
       const shaped = accs.map((a) => shapeAccount(a, sigs, acts));
       setAccounts(shaped);
+      setAccountsUpdatedAt(
+        accs.length ? Math.max(...accs.map((a) => new Date(a.updated_at).getTime())) : null,
+      );
 
       const accountById = new Map(shaped.map((a) => [a.id, a]));
       setLogs(
@@ -129,33 +152,48 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
           const acc = accountById.get(l.account_id);
           const action = acc ? [acc.recommended, ...acc.alternates].find((x) => x.id === l.action_id) : undefined;
           return {
-            id: l.id,
-            accountId: l.account_id,
-            accountTeam: acc?.team ?? "",
+            id: l.id, accountId: l.account_id, accountTeam: acc?.team ?? "",
             ownerName: acc?.owner.name ?? "",
-            actionId: l.action_id,
-            actionTitle: action?.title ?? "Intervention",
-            channel: l.channel,
-            at: new Date(l.sent_at).getTime(),
-            by: names[l.sent_by] ?? "Teammate",
-            status: l.status,
+            actionId: l.action_id, actionTitle: action?.title ?? "Intervention",
+            channel: l.channel, at: new Date(l.sent_at).getTime(),
+            by: names[l.sent_by] ?? "Teammate", status: l.status,
           };
         }),
       );
 
-      setSnoozed(
-        new Map(
-          sns.map<[string, SnoozeEntry]>((s) => [
-            s.account_id,
-            {
-              accountId: s.account_id,
-              snoozedAt: new Date(s.snoozed_at).getTime(),
-              durationMs: Number(s.duration_ms),
-              by: names[s.snoozed_by] ?? "Teammate",
-            },
-          ]),
-        ),
-      );
+      setSnoozed(new Map(sns.map<[string, SnoozeEntry]>((s) => [s.account_id, {
+        accountId: s.account_id,
+        snoozedAt: new Date(s.snoozed_at).getTime(),
+        durationMs: Number(s.duration_ms),
+        by: names[s.snoozed_by] ?? "Teammate",
+      }])));
+
+      setNotes(nts.map<AccountNote>((n) => ({
+        id: n.id, accountId: n.account_id, authorId: n.author_id,
+        authorName: names[n.author_id] ?? "Teammate",
+        body: n.body, createdAt: new Date(n.created_at).getTime(),
+      })));
+
+      setRiskEvents(res.map<RiskEvent>((r) => ({
+        id: r.id, accountId: r.account_id, eventType: r.event_type,
+        previousScore: r.previous_score, newScore: r.new_score,
+        occurredAt: new Date(r.occurred_at).getTime(),
+      })));
+
+      setFollowUps(fus.map<FollowUp>((f) => ({
+        id: f.id, logId: f.log_id, accountId: f.account_id,
+        scheduledAt: new Date(f.scheduled_at).getTime(),
+        completedAt: f.completed_at ? new Date(f.completed_at).getTime() : null,
+      })));
+
+      setOrgGoal(goal ? {
+        id: goal.id, metric: goal.metric, targetPct: goal.target_pct,
+        periodStart: new Date(goal.period_start).getTime(),
+        periodEnd: new Date(goal.period_end).getTime(),
+      } : null);
+
+      setPreferences({ defaultSnoozeHours: pref?.default_snooze_hours ?? 48 });
+
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -167,9 +205,6 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       const acc = accounts.find((a) => a.id === accountId);
       const action = acc ? [acc.recommended, ...acc.alternates].find((x) => x.id === actionId) : undefined;
       if (!acc || !action) throw new Error("Account or action not found");
-
-      // Brief simulated send latency for UX parity with the prototype.
-      await new Promise((r) => setTimeout(r, SEND_LATENCY_MS));
 
       if (forceFailNext || Math.random() < FAILURE_RATE) {
         setForceFailNext(false);
@@ -185,36 +220,38 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from("intervention_logs")
         .insert({
-          account_id: accountId,
-          action_id: actionId,
-          channel: action.channel,
-          sent_by: user.id,
-          status: "Awaiting response",
+          account_id: accountId, action_id: actionId, channel: action.channel,
+          sent_by: user.id, status: "Awaiting response",
         })
         .select()
         .single();
       if (error) throw error;
 
+      const sentAt = new Date(data.sent_at).getTime();
       const entry: LogEntry = {
-        id: data.id,
-        accountId,
-        accountTeam: acc.team,
-        ownerName: acc.owner.name,
-        actionId,
-        actionTitle: action.title,
-        channel: action.channel,
-        at: new Date(data.sent_at).getTime(),
-        by: displayName || "You",
-        status: data.status,
+        id: data.id, accountId, accountTeam: acc.team, ownerName: acc.owner.name,
+        actionId, actionTitle: action.title, channel: action.channel,
+        at: sentAt, by: displayName || "You", status: data.status,
       };
-
       setLogs((prev) => [entry, ...prev]);
-      // Clear any snooze on this account, server-side and locally.
+
+      // Schedule the 48h auto follow-up.
+      const scheduledAt = new Date(sentAt + 48 * 60 * 60 * 1000).toISOString();
+      const { data: fu } = await (supabase.from as any)("follow_ups")
+        .insert({ log_id: data.id, account_id: accountId, scheduled_at: scheduledAt })
+        .select()
+        .single();
+      if (fu) {
+        setFollowUps((prev) => [...prev, {
+          id: fu.id, logId: fu.log_id, accountId: fu.account_id,
+          scheduledAt: new Date(fu.scheduled_at).getTime(),
+          completedAt: fu.completed_at ? new Date(fu.completed_at).getTime() : null,
+        }]);
+      }
+
       if (snoozed.has(accountId)) {
         await supabase.from("snoozes").delete().eq("account_id", accountId);
-        setSnoozed((prev) => {
-          const m = new Map(prev); m.delete(accountId); return m;
-        });
+        setSnoozed((prev) => { const m = new Map(prev); m.delete(accountId); return m; });
       }
       return entry;
     },
@@ -222,10 +259,10 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
   );
 
   const snooze = useCallback(
-    async (accountId: string, hours = 48) => {
+    async (accountId: string, hours?: number) => {
       if (!user) return;
-      const durationMs = hours * 60 * 60 * 1000;
-      // Clear any existing row first (snoozes is unique on account_id).
+      const h = hours ?? preferences.defaultSnoozeHours;
+      const durationMs = h * 60 * 60 * 1000;
       await supabase.from("snoozes").delete().eq("account_id", accountId);
       const { data, error } = await supabase
         .from("snoozes")
@@ -244,24 +281,22 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
         return m;
       });
     },
-    [user, displayName],
+    [user, displayName, preferences.defaultSnoozeHours],
   );
 
   const unsnooze = useCallback(async (accountId: string) => {
     await supabase.from("snoozes").delete().eq("account_id", accountId);
-    setSnoozed((prev) => {
-      const m = new Map(prev); m.delete(accountId); return m;
-    });
+    setSnoozed((prev) => { const m = new Map(prev); m.delete(accountId); return m; });
   }, []);
 
   const value = useMemo<Ctx>(
     () => ({
-      accounts, intervened, snoozed, logs, loading,
-      intervene, snooze, unsnooze,
-      forceFailNext, setForceFailNext,
-      hideAll, setHideAll,
+      accounts, intervened, snoozed, logs,
+      notes, riskEvents, followUps, orgGoal, preferences, accountsUpdatedAt,
+      loading, intervene, snooze, unsnooze,
+      forceFailNext, setForceFailNext, hideAll, setHideAll,
     }),
-    [accounts, intervened, snoozed, logs, loading, intervene, snooze, unsnooze, forceFailNext, hideAll],
+    [accounts, intervened, snoozed, logs, notes, riskEvents, followUps, orgGoal, preferences, accountsUpdatedAt, loading, intervene, snooze, unsnooze, forceFailNext, hideAll],
   );
 
   return <RetentionContext.Provider value={value}>{children}</RetentionContext.Provider>;

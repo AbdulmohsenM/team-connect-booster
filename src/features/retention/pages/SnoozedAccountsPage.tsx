@@ -11,7 +11,7 @@ import { RiskBadge } from "../components/RiskBadge";
 
 /** Snoozed Accounts page — table with countdown + Resume action. */
 export default function SnoozedAccountsPage() {
-  const { accounts, snoozed, unsnooze } = useRetention();
+  const { accounts, snoozed, unsnooze, preferences } = useRetention();
   const now = useNow(30_000);
   const [query, setQuery] = useState("");
 
@@ -52,7 +52,7 @@ export default function SnoozedAccountsPage() {
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Default snooze</p>
-            <p className="text-2xl font-semibold mt-1">48h</p>
+            <p className="text-2xl font-semibold mt-1">{preferences.defaultSnoozeHours}h</p>
           </div>
         </div>
 

@@ -34,10 +34,11 @@ export function useAccountQueue(filter: QueueFilter) {
   }, [accounts, intervened, snoozed, filter]);
 }
 
-/** Q2 progress numbers used by both the queue header and confirmation page. */
+/** Q-period progress numbers used by both the queue header and confirmation page. */
 export function useInterventionProgress() {
-  const { accounts, intervened } = useRetention();
+  const { accounts, intervened, orgGoal } = useRetention();
   const total = accounts.length;
   const sent = intervened.size;
-  return { total, sent, pct: total === 0 ? 0 : Math.round((sent / total) * 100) };
+  const targetPct = orgGoal?.targetPct ?? 50;
+  return { total, sent, targetPct, pct: total === 0 ? 0 : Math.round((sent / total) * 100) };
 }
