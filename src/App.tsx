@@ -15,6 +15,7 @@ import {
 } from "@/features/retention";
 import { SessionProvider, RequireAuth } from "@/features/auth/SessionProvider";
 import AuthPage from "@/features/auth/AuthPage";
+import ResetPasswordPage from "@/features/auth/ResetPasswordPage";
 
 const queryClient = new QueryClient();
 
