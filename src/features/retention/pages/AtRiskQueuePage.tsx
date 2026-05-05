@@ -169,6 +169,10 @@ export default function AtRiskQueuePage() {
             account={active}
             intervened={intervened.has(active.id)}
             log={activeLogs}
+            notes={notes.filter((n) => n.accountId === active.id)}
+            riskEvent={riskEvents.find((r) => r.accountId === active.id && r.eventType === "flagged") ?? null}
+            currentUserName={displayName || "You"}
+            snoozeHours={preferences.defaultSnoozeHours}
             onIntervene={handleIntervene}
             onSnooze={handleSnooze}
             onClose={() => {
