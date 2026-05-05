@@ -12,7 +12,7 @@ interface Props {
 
 /** Persistent sidebar + content wrapper used on every retention screen. */
 export function AppShell({ children }: Props) {
-  const { accounts, intervened, snoozed, hideAll, setHideAll } = useRetention();
+  const { accounts, intervened, snoozed, hideAll, setHideAll, error, reload, loading } = useRetention();
   const { displayName, user, signOut } = useSession();
   const navigate = useNavigate();
   const needsActionCount = hideAll
