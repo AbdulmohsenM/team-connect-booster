@@ -1,9 +1,10 @@
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldAlert, Clock, History as HistoryIcon, Inbox, LayoutGrid, Users, CheckCircle2 } from "lucide-react";
+import { ShieldAlert, Clock, History as HistoryIcon, Inbox, LayoutGrid, Users, CheckCircle2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
 import { useRetention } from "@/features/retention";
+import { useSession } from "@/features/auth/SessionProvider";
 
 interface Props {
   children: ReactNode;
@@ -12,6 +13,7 @@ interface Props {
 /** Persistent sidebar + content wrapper used on every retention screen. */
 export function AppShell({ children }: Props) {
   const { accounts, intervened, snoozed, hideAll, setHideAll } = useRetention();
+  const { displayName, user, signOut } = useSession();
   const navigate = useNavigate();
   const needsActionCount = hideAll
     ? 0
