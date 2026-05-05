@@ -1,15 +1,12 @@
 import { useMemo, useState } from "react";
-import { useRetention } from "@/state/RetentionContext";
-import { Button } from "@/components/ui/button";
-import { Mail, MessageSquare, Sparkles, Search, Download, ChevronDown, Clock, CheckCircle2, AlertCircle, Filter as FilterIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-
-const channelIcon = {
-  "in-app nudge": Sparkles,
-  email: Mail,
-  "Slack message": MessageSquare,
-};
+import { Search, Download, ChevronDown, Clock, CheckCircle2, AlertCircle, Filter as FilterIcon, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useRetention } from "../state/RetentionContext";
+import { channelIcon } from "../utils/channels";
+import { formatTimestamp } from "../utils/time";
+import type { Channel } from "../data/types";
 
 const statusStyle = {
   "Awaiting response": { label: "Awaiting", cls: "bg-warning-soft text-warning border-warning/20", Icon: Clock },
@@ -17,20 +14,11 @@ const statusStyle = {
   "Re-engaged": { label: "Re-engaged", cls: "bg-success-soft text-success border-success/20", Icon: CheckCircle2 },
 } as const;
 
-function formatTimestamp(ts: number) {
-  const d = new Date(ts);
-  const now = Date.now();
-  const diff = now - ts;
-  if (diff < 60_000) return "just now";
-  if (diff < 60 * 60_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 24 * 60 * 60_000) return `${Math.floor(diff / (60 * 60_000))}h ago`;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 type StatusFilter = "all" | "Awaiting response" | "Responded" | "Re-engaged";
-type ChannelFilter = "all" | "in-app nudge" | "email" | "Slack message";
+type ChannelFilter = "all" | Channel;
 
-export default function History() {
+/** Intervention History page — filterable audit log of every sent intervention. */
+export default function InterventionHistoryPage() {
   const { logs } = useRetention();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [channel, setChannel] = useState<ChannelFilter>("all");
@@ -71,7 +59,6 @@ export default function History() {
           </div>
         </div>
 
-        {/* Status segmented filters */}
         <div className="mt-6 flex items-center gap-2 flex-wrap">
           {([
             { id: "all", label: "All", count: counts.all },
@@ -104,7 +91,6 @@ export default function History() {
 
           <div className="h-5 w-px bg-border mx-1" />
 
-          {/* Channel select-like dropdown (simple) */}
           <div className="relative">
             <select
               value={channel}
@@ -131,7 +117,6 @@ export default function History() {
           </div>
         </div>
 
-        {/* Activity log */}
         <div className="mt-5 rounded-xl border border-border bg-card overflow-hidden">
           <div className="grid grid-cols-[1fr_1.6fr_140px_140px_120px] gap-4 px-5 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
             <span>Account</span>

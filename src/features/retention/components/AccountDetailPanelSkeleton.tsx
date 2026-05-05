@@ -1,13 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Matches the real AccountDetail layout 1:1 (header ring, why block,
- * quote, 3 action cards, action bar) so the panel doesn't reflow on load.
+ * Layout-mirror of AccountDetailPanel so the panel doesn't reflow on load.
  */
-export function AccountDetailSkeleton() {
+export function AccountDetailPanelSkeleton() {
   return (
     <div className="flex flex-col h-full bg-background" aria-busy="true" aria-label="Loading account details">
-      {/* Header */}
       <div className="px-7 pt-6 pb-5 border-b border-border bg-card">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -25,7 +23,6 @@ export function AccountDetailSkeleton() {
       </div>
 
       <div className="flex-1 overflow-hidden px-7 py-6 space-y-6">
-        {/* WHY block */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <Skeleton className="size-4 rounded" />
@@ -47,7 +44,6 @@ export function AccountDetailSkeleton() {
           </div>
         </section>
 
-        {/* QUOTE */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <Skeleton className="size-4 rounded" />
@@ -60,7 +56,6 @@ export function AccountDetailSkeleton() {
           </div>
         </section>
 
-        {/* SUGGESTED ACTIONS */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -86,7 +81,6 @@ export function AccountDetailSkeleton() {
         </section>
       </div>
 
-      {/* Action bar */}
       <div className="border-t border-border bg-card px-7 py-4 flex items-center justify-between">
         <Skeleton className="h-3.5 w-24" />
         <Skeleton className="h-11 w-44 rounded-md" />

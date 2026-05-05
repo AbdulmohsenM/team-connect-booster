@@ -1,10 +1,11 @@
-import { Account, Action } from "@/data/atRiskAccounts";
-import { RiskScoreRing } from "./RiskBadge";
-import { Button } from "./ui/button";
-import { cn } from "@/lib/utils";
-import { Quote, Sparkles, Send, Mail, MessageSquare, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History, AlertOctagon, RotateCw } from "lucide-react";
 import { useState, useEffect } from "react";
-import type { LogEntry } from "@/state/RetentionContext";
+import { Quote, Sparkles, Send, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History, AlertOctagon, RotateCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { RiskScoreRing } from "./RiskBadge";
+import { channelIcon } from "../utils/channels";
+import { formatRelative } from "../utils/time";
+import type { Account, Action, LogEntry } from "../data/types";
 
 interface Props {
   account: Account;
@@ -16,24 +17,12 @@ interface Props {
   onClose: () => void;
 }
 
-function formatRelative(ts: number) {
-  const diff = Date.now() - ts;
-  const s = Math.max(1, Math.floor(diff / 1000));
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
-const channelIcon = {
-  "in-app nudge": Sparkles,
-  email: Mail,
-  "Slack message": MessageSquare,
-};
-
-export function AccountDetail({ account, intervened, log, onIntervene, onSnooze, onClose }: Props) {
+/**
+ * Account Detail Panel — primary workspace surface.
+ * Three visual tiers: Hero (suggested intervention), Context (why + quote),
+ * Supporting (activity & ownership timeline).
+ */
+export function AccountDetailPanel({ account, intervened, log, onIntervene, onSnooze, onClose }: Props) {
   const [selected, setSelected] = useState<Action>(account.recommended);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ message: string; failedActionId: string } | null>(null);
@@ -51,7 +40,6 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
     setError(null);
     try {
       await onIntervene(selected.id);
-      // Parent navigates away on success; nothing else to do here.
     } catch (e) {
       setSending(false);
       setError({
@@ -61,11 +49,10 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
     }
   };
 
-  // Clear the error if the user picks a different action.
+  // Clear the error when the user picks a different action.
   useEffect(() => {
     if (error && selected.id !== error.failedActionId) setError(null);
   }, [selected.id, error]);
-
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -91,8 +78,7 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
       </div>
 
       <div className="flex-1 overflow-y-auto px-7 py-7 space-y-8">
-        {/* ───────────── HERO: Suggested intervention ───────────── */}
-        {/* Promoted to the top, elevated surface, larger type, dominant action cards. */}
+        {/* HERO: Suggested intervention */}
         <section>
           <div className="flex items-end justify-between mb-4">
             <div className="flex items-center gap-2.5">
@@ -163,9 +149,8 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
           </div>
         </section>
 
-        {/* ───────────── CONTEXT: Why + Quote (paired, equal weight, demoted) ───────────── */}
+        {/* CONTEXT: Why + Quote */}
         <section className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-          {/* Why — risk reason */}
           <div className="xl:col-span-3">
             <div className="flex items-center gap-2 mb-2.5">
               <AlertTriangle className="size-3.5 text-warning" />
@@ -191,7 +176,6 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
             </div>
           </div>
 
-          {/* Quote — real user voice */}
           <div className="xl:col-span-2">
             <div className="flex items-center gap-2 mb-2.5">
               <Quote className="size-3.5 text-primary" />
@@ -206,7 +190,7 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
           </div>
         </section>
 
-        {/* ───────────── SUPPORTING: Activity & ownership (demoted) ───────────── */}
+        {/* SUPPORTING: Activity & ownership */}
         <section>
           <div className="flex items-center justify-between mb-2.5 pt-2 border-t border-border/60">
             <div className="flex items-center gap-2 mt-3">
@@ -225,7 +209,6 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
 
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <ol className="relative">
-              {/* New: live intervention entries */}
               {log.map((entry, i) => {
                 const Icon = channelIcon[entry.channel];
                 const isYou = entry.by === "Jordan Kim";
@@ -252,7 +235,6 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
                 );
               })}
 
-              {/* Seed: prior PM workflow events to make it read as collaborative work */}
               <li className="flex gap-3 px-4 py-3.5 border-b border-border">
                 <div className="size-8 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold flex items-center justify-center">
                   AI
@@ -291,7 +273,6 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
 
       {/* Action bar */}
       <div className="border-t border-border bg-card px-7 py-4 space-y-3">
-        {/* Error state — exact required copy + retry / pick another action */}
         {error && !intervened && (
           <div
             role="alert"
@@ -313,7 +294,6 @@ export function AccountDetail({ account, intervened, log, onIntervene, onSnooze,
                 className="h-8 text-xs gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => {
                   setError(null);
-                  // Scroll-into-view nudge: focus the next non-failed action.
                   const next = allActions.find((a) => a.id !== error.failedActionId);
                   if (next) setSelected(next);
                 }}

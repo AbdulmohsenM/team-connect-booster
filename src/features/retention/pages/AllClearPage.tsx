@@ -1,22 +1,18 @@
 import { Link } from "react-router-dom";
-import { useRetention } from "@/state/RetentionContext";
-import { Button } from "@/components/ui/button";
 import { CheckCircle2, History as HistoryIcon, Clock, TrendingDown, Sparkles, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRetention } from "../state/RetentionContext";
 
-export default function AllClear() {
-  const { accounts, intervened, snoozed, logs, hideAll, setHideAll } = useRetention();
-  const total = accounts.length;
+/** All Clear page — empty/inbox-zero state for the at-risk queue. */
+export default function AllClearPage() {
+  const { intervened, snoozed, logs, hideAll, setHideAll } = useRetention();
   const intervenedCount = intervened.size;
   const snoozedCount = snoozed.size;
-
-  // Most recent intervention to highlight
   const recent = logs.slice(0, 3);
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-muted/30">
       <div className="max-w-3xl mx-auto px-8 py-16">
-        {/* Hero */}
         <div className="text-center">
           <div className="inline-flex items-center justify-center size-20 rounded-full bg-success-soft mb-6">
             <CheckCircle2 className="size-10 text-success" />
@@ -31,7 +27,6 @@ export default function AllClear() {
           </p>
         </div>
 
-        {/* Stat row */}
         <div className="mt-10 grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -59,7 +54,6 @@ export default function AllClear() {
           </div>
         </div>
 
-        {/* Suggested next steps */}
         <div className="mt-8 rounded-xl border border-border bg-card p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">While you wait</h2>
           <div className="space-y-3">
@@ -105,13 +99,10 @@ export default function AllClear() {
           )}
         </div>
 
-        {/* Dev preview toggle */}
         <div className="mt-8 text-center">
           <button
             onClick={() => setHideAll(!hideAll)}
-            className={cn(
-              "text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline",
-            )}
+            className={cn("text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline")}
           >
             {hideAll ? "← Restore at-risk accounts (preview mode)" : "Tip: showing this state because the queue was cleared"}
           </button>

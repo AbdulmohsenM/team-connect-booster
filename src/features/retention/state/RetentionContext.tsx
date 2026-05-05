@@ -1,50 +1,28 @@
 import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from "react";
-import { accounts as seed, Account, Action } from "@/data/atRiskAccounts";
-
-export type LogEntry = {
-  id: string;
-  accountId: string;
-  accountTeam: string;
-  ownerName: string;
-  actionId: string;
-  actionTitle: string;
-  channel: Action["channel"];
-  at: number;
-  by: string;
-  status: "Awaiting response" | "Responded" | "Re-engaged";
-};
-
-export type SnoozeEntry = {
-  accountId: string;
-  snoozedAt: number;
-  durationMs: number; // 48h default
-  by: string;
-};
+import { accounts as seed } from "../data/accounts";
+import type { Account, Action, LogEntry, SnoozeEntry } from "../data/types";
 
 type Ctx = {
   accounts: Account[];
   intervened: Set<string>;
   snoozed: Map<string, SnoozeEntry>;
   logs: LogEntry[];
-  /**
-   * Simulates a network round-trip. Resolves with the LogEntry on success.
-   * Rejects with an Error on failure (channel/delivery rejected by stub).
-   */
+  /** Resolves with the LogEntry on success, rejects on simulated delivery failure. */
   intervene: (accountId: string, actionId: string) => Promise<LogEntry>;
   snooze: (accountId: string, hours?: number) => void;
   unsnooze: (accountId: string) => void;
   /** Force the next intervene() call to fail. Auto-clears after one use. */
   forceFailNext: boolean;
   setForceFailNext: (v: boolean) => void;
-  hideAll: boolean; // dev toggle to demo empty state
+  /** Dev toggle to demo the empty/all-clear state. */
+  hideAll: boolean;
   setHideAll: (v: boolean) => void;
 };
 
 const RetentionContext = createContext<Ctx | null>(null);
 
-// Failure rate for the prototype's stubbed delivery layer.
-// Low enough that the happy path dominates, high enough that the error
-// state is reachable by clicking around. Use forceFailNext for demos.
+// Stubbed delivery layer: low enough that the happy path dominates,
+// high enough that the error state is reachable by clicking around.
 const FAILURE_RATE = 0.12;
 const SEND_LATENCY_MS = 700;
 
@@ -58,7 +36,7 @@ export function RetentionProvider({ children }: { children: ReactNode }) {
   const intervene = useCallback(
     (accountId: string, actionId: string): Promise<LogEntry> => {
       const acc = seed.find((a) => a.id === accountId)!;
-      const action = [acc.recommended, ...acc.alternates].find((x) => x.id === actionId)!;
+      const action: Action = [acc.recommended, ...acc.alternates].find((x) => x.id === actionId)!;
 
       return new Promise((resolve, reject) => {
         setTimeout(() => {

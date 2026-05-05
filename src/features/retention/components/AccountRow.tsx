@@ -1,7 +1,7 @@
-import { Account } from "@/data/atRiskAccounts";
-import { RiskBadge } from "./RiskBadge";
 import { cn } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight, Minus, CheckCircle2 } from "lucide-react";
+import type { Account } from "../data/types";
+import { RiskBadge } from "./RiskBadge";
 
 interface Props {
   account: Account;
@@ -10,6 +10,7 @@ interface Props {
   onClick: () => void;
 }
 
+/** Single row in the At-Risk Queue. Pure display — no data fetching. */
 export function AccountRow({ account, active, intervened, onClick }: Props) {
   const TrendIcon = account.trend === "up" ? ArrowUpRight : account.trend === "down" ? ArrowDownRight : Minus;
   return (

@@ -1,61 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
-import { AccountRow } from "@/components/AccountRow";
-import { AccountDetail } from "@/components/AccountDetail";
-import { AccountDetailSkeleton } from "@/components/AccountDetailSkeleton";
-import { toast } from "sonner";
+import { useState } from "react";
+import { useNavigate, Navigate as RouterNavigate } from "react-router-dom";
 import { Bell, Search, Filter } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useRetention } from "@/state/RetentionContext";
+import { useRetention } from "../state/RetentionContext";
+import { useAccountQueue, useInterventionProgress, type QueueFilter } from "../hooks/useAccountQueue";
+import { useDetailLoading } from "../hooks/useDetailLoading";
+import { AccountRow } from "../components/AccountRow";
+import { AccountDetailPanel } from "../components/AccountDetailPanel";
+import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
 
-const Index = () => {
+/**
+ * At-Risk Queue page — left: prioritized queue with workflow filters,
+ * right: AccountDetailPanel for the active selection.
+ */
+export default function AtRiskQueuePage() {
   const navigate = useNavigate();
   const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll } = useRetention();
 
-  // Empty state takeover when nothing at-risk
-  const needsAction = useMemo(
-    () => accounts.filter((a) => !intervened.has(a.id) && !snoozed.has(a.id)),
-    [accounts, intervened, snoozed],
-  );
+  const [filter, setFilter] = useState<QueueFilter>("needs-action");
+  const { visible, counts, needsAction } = useAccountQueue(filter);
+  const { total, sent: intervenedCount, pct } = useInterventionProgress();
 
-  const [filter, setFilter] = useState<"needs-action" | "snoozed" | "intervened">("needs-action");
   const [activeId, setActiveId] = useState<string | null>(needsAction[0]?.id ?? accounts[0]?.id ?? null);
-  // Brief loading state when switching accounts (simulates fetching the
-  // full risk profile + signals + recommended action). Keyed off activeId.
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const loadingDetail = useDetailLoading(activeId, 500);
 
-  useEffect(() => {
-    if (!activeId) return;
-    setLoadingDetail(true);
-    const t = setTimeout(() => setLoadingDetail(false), 500);
-    return () => clearTimeout(t);
-  }, [activeId]);
-
-  // If hideAll dev toggle is on, show empty state
+  // Empty state takeover
   if (hideAll || (needsAction.length === 0 && intervened.size === 0 && snoozed.size === 0)) {
-    return <Navigate to="/all-clear" replace />;
+    return <RouterNavigate to="/all-clear" replace />;
   }
 
-  const counts = {
-    "needs-action": accounts.filter((a) => !snoozed.has(a.id) && !intervened.has(a.id)).length,
-    snoozed: snoozed.size,
-    intervened: intervened.size,
-  };
-
-  const visible = accounts
-    .filter((a) => {
-      if (filter === "needs-action") return !snoozed.has(a.id) && !intervened.has(a.id);
-      if (filter === "snoozed") return snoozed.has(a.id);
-      return intervened.has(a.id);
-    })
-    .sort((a, b) => b.riskScore - a.riskScore);
-
   const active = accounts.find((a) => a.id === activeId) ?? visible[0] ?? accounts[0];
-
-  // Logs scoped to active account
   const activeLogs = logs.filter((l) => l.accountId === active.id);
 
-  // Throws if delivery fails so AccountDetail can show its inline error state.
   const handleIntervene = async (actionId: string) => {
     const entry = await intervene(active.id, actionId);
     navigate(`/confirmation/${entry.id}`);
@@ -69,10 +46,6 @@ const Index = () => {
       .sort((a, b) => b.riskScore - a.riskScore)[0];
     if (next) setActiveId(next.id);
   };
-
-  const total = accounts.length;
-  const intervenedCount = intervened.size;
-  const pct = Math.round((intervenedCount / total) * 100);
 
   return (
     <>
@@ -118,7 +91,7 @@ const Index = () => {
               return (
                 <button
                   key={t.id}
-                  onClick={() => setFilter(t.id as typeof filter)}
+                  onClick={() => setFilter(t.id as QueueFilter)}
                   className={cn(
                     "flex items-center justify-center gap-1.5 text-xs px-2 py-1.5 rounded-md font-medium transition-colors",
                     isActive ? "bg-background text-foreground shadow-card" : "text-muted-foreground hover:text-foreground"
@@ -162,9 +135,9 @@ const Index = () => {
 
       <section className="flex-1 min-w-0">
         {loadingDetail ? (
-          <AccountDetailSkeleton />
+          <AccountDetailPanelSkeleton />
         ) : (
-          <AccountDetail
+          <AccountDetailPanel
             key={active.id}
             account={active}
             intervened={intervened.has(active.id)}
@@ -180,6 +153,4 @@ const Index = () => {
       </section>
     </>
   );
-};
-
-export default Index;
+}

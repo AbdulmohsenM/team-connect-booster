@@ -1,34 +1,11 @@
-export type Signal = {
-  label: string;
-  detail: string;
-  weight: "high" | "med" | "low";
-};
+import type { Account } from "./types";
 
-export type Action = {
-  id: string;
-  title: string;
-  preview: string;
-  channel: "in-app nudge" | "email" | "Slack message";
-  expectedLift: string;
-};
-
-export type Account = {
-  id: string;
-  team: string;
-  plan: string;
-  seats: number;
-  owner: { name: string; role: string; avatar: string };
-  daysSinceSignup: number;
-  riskScore: number; // 0-100
-  trend: "up" | "down" | "flat";
-  topReason: string;
-  signals: Signal[];
-  quote: { text: string; source: string; channel: string };
-  recommended: Action;
-  alternates: Action[];
-  mrr: number;
-};
-
+/**
+ * Mock seed of at-risk accounts. Each entry represents a distinct churn
+ * archetype called out in the original brief (solo workspace, stalled invite,
+ * unused seats, blank-canvas bounce, recovering). No backend, no model —
+ * scores and lift estimates are hand-authored.
+ */
 export const accounts: Account[] = [
   {
     id: "acme-robotics",
@@ -59,20 +36,8 @@ export const accounts: Account[] = [
       expectedLift: "+41% 90-day retention for accounts that invite ≥1 teammate by day 7",
     },
     alternates: [
-      {
-        id: "csv-import",
-        title: "Offer Google Workspace import",
-        preview: "One-click sync to pull all 14 teammates from Acme's directory.",
-        channel: "email",
-        expectedLift: "+28%",
-      },
-      {
-        id: "live-onboarding",
-        title: "Book a 15-min team setup call",
-        preview: "Calendly link with the onboarding specialist who closed Acme's deal.",
-        channel: "email",
-        expectedLift: "+33%",
-      },
+      { id: "csv-import", title: "Offer Google Workspace import", preview: "One-click sync to pull all 14 teammates from Acme's directory.", channel: "email", expectedLift: "+28%" },
+      { id: "live-onboarding", title: "Book a 15-min team setup call", preview: "Calendly link with the onboarding specialist who closed Acme's deal.", channel: "email", expectedLift: "+33%" },
     ],
     mrr: 420,
   },
@@ -105,13 +70,7 @@ export const accounts: Account[] = [
       expectedLift: "+22% 90-day retention when stalled invite is recovered",
     },
     alternates: [
-      {
-        id: "template",
-        title: "Suggest the Creative Agency template",
-        preview: "Pre-built workflow matching Northwind's industry (set during signup).",
-        channel: "in-app nudge",
-        expectedLift: "+14%",
-      },
+      { id: "template", title: "Suggest the Creative Agency template", preview: "Pre-built workflow matching Northwind's industry (set during signup).", channel: "in-app nudge", expectedLift: "+14%" },
     ],
     mrr: 240,
   },
@@ -144,13 +103,7 @@ export const accounts: Account[] = [
       expectedLift: "+36% retention on accounts with <20% seat activation",
     },
     alternates: [
-      {
-        id: "csm-intro",
-        title: "Assign a CSM (account is >$1.5K MRR)",
-        preview: "Trigger the white-glove path normally reserved for Enterprise.",
-        channel: "email",
-        expectedLift: "+45%",
-      },
+      { id: "csm-intro", title: "Assign a CSM (account is >$1.5K MRR)", preview: "Trigger the white-glove path normally reserved for Enterprise.", channel: "email", expectedLift: "+45%" },
     ],
     mrr: 1760,
   },
@@ -182,13 +135,7 @@ export const accounts: Account[] = [
       expectedLift: "+29% activation when first-task friction is removed",
     },
     alternates: [
-      {
-        id: "founder-email",
-        title: "Personal email from the founder",
-        preview: "Short, plain-text 'how can I help you get started?' from the CEO.",
-        channel: "email",
-        expectedLift: "+18%",
-      },
+      { id: "founder-email", title: "Personal email from the founder", preview: "Short, plain-text 'how can I help you get started?' from the CEO.", channel: "email", expectedLift: "+18%" },
     ],
     mrr: 49,
   },
@@ -219,13 +166,7 @@ export const accounts: Account[] = [
       expectedLift: "Avoid intervention fatigue",
     },
     alternates: [
-      {
-        id: "tip",
-        title: "Send the 'Recurring Projects' tip",
-        preview: "Lightweight in-app tip, no human touch needed.",
-        channel: "in-app nudge",
-        expectedLift: "+8%",
-      },
+      { id: "tip", title: "Send the 'Recurring Projects' tip", preview: "Lightweight in-app tip, no human touch needed.", channel: "in-app nudge", expectedLift: "+8%" },
     ],
     mrr: 360,
   },

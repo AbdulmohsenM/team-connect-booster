@@ -1,19 +1,17 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useRetention } from "@/state/RetentionContext";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight, Clock, History as HistoryIcon, Mail, MessageSquare, Sparkles, Calendar, Bell, ChevronLeft } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { CheckCircle2, ArrowRight, Clock, History as HistoryIcon, Bell, Calendar, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRetention } from "../state/RetentionContext";
+import { useInterventionProgress } from "../hooks/useAccountQueue";
+import { channelIcon } from "../utils/channels";
 
-const channelIcon = {
-  "in-app nudge": Sparkles,
-  email: Mail,
-  "Slack message": MessageSquare,
-};
-
-export default function Confirmation() {
+/** Intervention Confirmation page — receipt + next-account CTA. */
+export default function InterventionConfirmationPage() {
   const { entryId } = useParams();
   const navigate = useNavigate();
   const { logs, accounts, intervened, snoozed } = useRetention();
+  const { total, sent: intervenedCount, pct } = useInterventionProgress();
 
   const entry = useMemo(() => logs.find((l) => l.id === entryId), [logs, entryId]);
   const account = useMemo(() => (entry ? accounts.find((a) => a.id === entry.accountId) : null), [entry, accounts]);
@@ -24,22 +22,14 @@ export default function Confirmation() {
       .sort((a, b) => b.riskScore - a.riskScore)[0];
   }, [accounts, intervened, snoozed]);
 
-  // Total intervened progress
-  const total = accounts.length;
-  const intervenedCount = intervened.size;
-  const pct = Math.round((intervenedCount / total) * 100);
-
   useEffect(() => {
     if (!entry) {
-      // No entry — fall back home
       const t = setTimeout(() => navigate("/"), 50);
       return () => clearTimeout(t);
     }
   }, [entry, navigate]);
 
-  if (!entry || !account) {
-    return null;
-  }
+  if (!entry || !account) return null;
 
   const Icon = channelIcon[entry.channel];
 
@@ -50,7 +40,6 @@ export default function Confirmation() {
           <ChevronLeft className="size-4" /> Back to queue
         </Link>
 
-        {/* Hero confirmation */}
         <div className="rounded-2xl bg-card border border-border shadow-elevated p-8">
           <div className="flex items-start gap-5">
             <div className="size-14 rounded-full bg-success-soft flex items-center justify-center shrink-0">
@@ -58,9 +47,7 @@ export default function Confirmation() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-success">Intervention sent</p>
-              <h1 className="text-2xl font-semibold mt-1">
-                {entry.actionTitle}
-              </h1>
+              <h1 className="text-2xl font-semibold mt-1">{entry.actionTitle}</h1>
               <p className="text-sm text-muted-foreground mt-1.5">
                 Delivered to <span className="font-medium text-foreground">{account.owner.name}</span> at{" "}
                 <span className="font-medium text-foreground">{account.team}</span> via{" "}
@@ -69,7 +56,6 @@ export default function Confirmation() {
             </div>
           </div>
 
-          {/* Receipt grid */}
           <div className="mt-7 grid grid-cols-3 gap-px bg-border rounded-xl overflow-hidden border border-border">
             <div className="bg-card p-4">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Channel</p>
@@ -87,7 +73,6 @@ export default function Confirmation() {
             </div>
           </div>
 
-          {/* What happens next */}
           <div className="mt-7">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">What happens next</h3>
             <ol className="space-y-3">
@@ -119,7 +104,6 @@ export default function Confirmation() {
             </ol>
           </div>
 
-          {/* Quarter progress */}
           <div className="mt-7 rounded-xl border border-border bg-muted/40 p-4">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-semibold">Q2 goal · interventions sent</span>
@@ -136,7 +120,6 @@ export default function Confirmation() {
           </div>
         </div>
 
-        {/* Action bar */}
         <div className="mt-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Link to="/history">

@@ -1,32 +1,19 @@
-import { useEffect, useState } from "react";
-import { useRetention } from "@/state/RetentionContext";
-import { RiskBadge } from "@/components/RiskBadge";
-import { Button } from "@/components/ui/button";
-import { Clock, RotateCcw, ArrowRight, Search, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { Clock, RotateCcw, ArrowRight, Search, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useRetention } from "../state/RetentionContext";
+import { useNow } from "../hooks/useNow";
+import { timeRemaining } from "../utils/time";
+import { RiskBadge } from "../components/RiskBadge";
 
-function timeRemaining(snoozedAt: number, durationMs: number, now: number) {
-  const remaining = snoozedAt + durationMs - now;
-  if (remaining <= 0) return { label: "due now", urgent: true, pct: 100 };
-  const h = Math.floor(remaining / (60 * 60 * 1000));
-  const m = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-  const elapsed = now - snoozedAt;
-  const pct = Math.min(100, Math.round((elapsed / durationMs) * 100));
-  if (h >= 1) return { label: `${h}h ${m}m left`, urgent: h < 6, pct };
-  return { label: `${m}m left`, urgent: true, pct };
-}
-
-export default function Snoozed() {
+/** Snoozed Accounts page — table with countdown + Resume action. */
+export default function SnoozedAccountsPage() {
   const { accounts, snoozed, unsnooze } = useRetention();
-  const [now, setNow] = useState(Date.now());
+  const now = useNow(30_000);
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30 * 1000);
-    return () => clearInterval(t);
-  }, []);
 
   const items = Array.from(snoozed.values())
     .map((s) => ({ snooze: s, account: accounts.find((a) => a.id === s.accountId)! }))
@@ -54,7 +41,6 @@ export default function Snoozed() {
           </div>
         </div>
 
-        {/* Stat strip */}
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Currently snoozed</p>
@@ -70,7 +56,6 @@ export default function Snoozed() {
           </div>
         </div>
 
-        {/* Search */}
         <div className="mt-6 relative max-w-sm">
           <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -81,7 +66,6 @@ export default function Snoozed() {
           />
         </div>
 
-        {/* Queue list */}
         <div className="mt-4 rounded-xl border border-border bg-card overflow-hidden">
           <div className="grid grid-cols-[1fr_140px_1fr_120px_180px] gap-4 px-5 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
             <span>Account</span>
