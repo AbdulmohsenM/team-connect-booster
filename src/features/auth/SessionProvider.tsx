@@ -1,56 +1,89 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+
+const DEMO_SESSION_KEY = "plansmith-demo-session";
+const DEMO_DISPLAY_NAME = "Jordan Kim";
+const DEMO_EMAIL = "demo@plansmith.local";
+const DEMO_USER_ID = "00000000-0000-4000-8000-000000000001";
+
+function createDemoSession(): Session {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    access_token: "demo-access-token",
+    refresh_token: "demo-refresh-token",
+    expires_in: 60 * 60 * 24 * 365,
+    expires_at: now + 60 * 60 * 24 * 365,
+    token_type: "bearer",
+    user: {
+      id: DEMO_USER_ID,
+      app_metadata: {},
+      user_metadata: { display_name: DEMO_DISPLAY_NAME },
+      aud: "authenticated",
+      created_at: new Date().toISOString(),
+      email: DEMO_EMAIL,
+    } as User,
+  } as Session;
+}
+
+function readDemoEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(DEMO_SESSION_KEY);
+  if (stored === null) {
+    window.localStorage.setItem(DEMO_SESSION_KEY, "true");
+    return true;
+  }
+  return stored === "true";
+}
+
+export function enableDemoSession() {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(DEMO_SESSION_KEY, "true");
+  }
+}
+
+export function clearDemoSession() {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(DEMO_SESSION_KEY, "false");
+  }
+}
 
 type Ctx = {
   session: Session | null;
   user: User | null;
   displayName: string;
   loading: boolean;
+  isDemo: boolean;
   signOut: () => Promise<void>;
 };
 
 const SessionContext = createContext<Ctx | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [demoEnabled, setDemoEnabled] = useState(readDemoEnabled);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (s?.user) {
-        // Defer profile fetch to avoid recursive auth callbacks.
-        setTimeout(async () => {
-          const { data } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("id", s.user.id)
-            .maybeSingle();
-          setDisplayName(data?.display_name ?? s.user.email?.split("@")[0] ?? "User");
-        }, 0);
-      } else {
-        setDisplayName("");
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
+    const sync = () => setDemoEnabled(readDemoEnabled());
+    window.addEventListener("storage", sync);
+    window.addEventListener("plansmith-demo-auth-change", sync as EventListener);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("plansmith-demo-auth-change", sync as EventListener);
+    };
   }, []);
 
+  const session = useMemo(() => (demoEnabled ? createDemoSession() : null), [demoEnabled]);
+  const displayName = session?.user.user_metadata?.display_name ?? DEMO_DISPLAY_NAME;
+  const loading = false;
+
   const signOut = async () => {
-    await supabase.auth.signOut();
+    clearDemoSession();
+    window.dispatchEvent(new Event("plansmith-demo-auth-change"));
   };
 
   return (
     <SessionContext.Provider
-      value={{ session, user: session?.user ?? null, displayName, loading, signOut }}
+      value={{ session, user: session?.user ?? null, displayName, loading, isDemo: demoEnabled, signOut }}
     >
       {children}
     </SessionContext.Provider>
