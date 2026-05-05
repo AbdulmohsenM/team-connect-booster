@@ -9,6 +9,7 @@ import { useDetailLoading } from "../hooks/useDetailLoading";
 import { AccountRow } from "../components/AccountRow";
 import { AccountDetailPanel } from "../components/AccountDetailPanel";
 import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
+import { formatRelative } from "../utils/time";
 
 /**
  * At-Risk Queue page — left: prioritized queue with workflow filters,
