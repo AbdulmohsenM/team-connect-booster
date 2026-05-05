@@ -111,6 +111,14 @@ export default function AuthPage() {
         >
           {mode === "signin" ? "Need an account? Sign up" : "Already have one? Sign in"}
         </button>
+
+        <button
+          type="button"
+          onClick={useDemo}
+          className="block w-full text-xs text-center text-primary hover:underline"
+        >
+          Use demo account ({DEMO_EMAIL})
+        </button>
       </form>
     </div>
   );
