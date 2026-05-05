@@ -1,9 +1,10 @@
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldAlert, Clock, History as HistoryIcon, Inbox, LayoutGrid, Users, CheckCircle2 } from "lucide-react";
+import { ShieldAlert, Clock, History as HistoryIcon, Inbox, LayoutGrid, Users, CheckCircle2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
 import { useRetention } from "@/features/retention";
+import { useSession } from "@/features/auth/SessionProvider";
 
 interface Props {
   children: ReactNode;
@@ -12,6 +13,7 @@ interface Props {
 /** Persistent sidebar + content wrapper used on every retention screen. */
 export function AppShell({ children }: Props) {
   const { accounts, intervened, snoozed, hideAll, setHideAll } = useRetention();
+  const { displayName, user, signOut } = useSession();
   const navigate = useNavigate();
   const needsActionCount = hideAll
     ? 0
@@ -82,12 +84,20 @@ export function AppShell({ children }: Props) {
         <div className="mt-auto px-3 py-4 border-t border-sidebar-border">
           <div className="flex items-center gap-2.5 px-2">
             <div className="size-7 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-accent-foreground">
-              JK
+              {(displayName || "U").slice(0, 2).toUpperCase()}
             </div>
-            <div className="text-xs">
-              <div className="text-sidebar-primary-foreground">Jordan Kim</div>
-              <div className="text-sidebar-foreground/60">PM · Growth</div>
+            <div className="text-xs flex-1 min-w-0">
+              <div className="text-sidebar-primary-foreground truncate">{displayName || "User"}</div>
+              <div className="text-sidebar-foreground/60 truncate">{user?.email}</div>
             </div>
+            <button
+              type="button"
+              onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
+              className="p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-primary-foreground"
+              title="Sign out"
+            >
+              <LogOut className="size-3.5" />
+            </button>
           </div>
         </div>
       </aside>

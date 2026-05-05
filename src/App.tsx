@@ -13,8 +13,18 @@ import {
   AllClearPage,
   InterventionHistoryPage,
 } from "@/features/retention";
+import { SessionProvider, RequireAuth } from "@/features/auth/SessionProvider";
+import AuthPage from "@/features/auth/AuthPage";
 
 const queryClient = new QueryClient();
+
+const Protected = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth>
+    <RetentionProvider>
+      <AppShell>{children}</AppShell>
+    </RetentionProvider>
+  </RequireAuth>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -22,18 +32,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <RetentionProvider>
+        <SessionProvider>
           <Routes>
-            <Route path="/" element={<AppShell><AtRiskQueuePage /></AppShell>} />
-            <Route path="/confirmation/:entryId" element={<AppShell><InterventionConfirmationPage /></AppShell>} />
-            <Route path="/snoozed" element={<AppShell><SnoozedAccountsPage /></AppShell>} />
-            <Route path="/history" element={<AppShell><InterventionHistoryPage /></AppShell>} />
-            <Route path="/all-clear" element={<AppShell><AllClearPage /></AppShell>} />
-            {/* Sidebar preview shortcut to demo the empty state */}
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/" element={<Protected><AtRiskQueuePage /></Protected>} />
+            <Route path="/confirmation/:entryId" element={<Protected><InterventionConfirmationPage /></Protected>} />
+            <Route path="/snoozed" element={<Protected><SnoozedAccountsPage /></Protected>} />
+            <Route path="/history" element={<Protected><InterventionHistoryPage /></Protected>} />
+            <Route path="/all-clear" element={<Protected><AllClearPage /></Protected>} />
             <Route path="/empty-preview" element={<Navigate to="/all-clear" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </RetentionProvider>
+        </SessionProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
