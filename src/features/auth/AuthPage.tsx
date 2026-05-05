@@ -8,6 +8,10 @@ import { toast } from "sonner";
  * Minimal email/password auth gate. RLS on every retention table requires an
  * authenticated session, so this screen blocks the app until the user signs in.
  */
+const DEMO_EMAIL = "demo@plansmith.test";
+const DEMO_PASSWORD = "Plansmith!2026";
+const DEMO_NAME = "Jordan Kim";
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -15,6 +19,14 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const useDemo = () => {
+    setMode("signup");
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setName(DEMO_NAME);
+    toast("Demo creds filled", { description: "Click Create account once, then Sign in." });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
