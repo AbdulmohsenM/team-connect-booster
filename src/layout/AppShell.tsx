@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { NavLink } from "./NavLink";
 import { useRetention } from "@/features/retention";
 import { useSession } from "@/features/auth/SessionProvider";
+import { WorkspaceErrorCard } from "@/features/retention/components/WorkspaceErrorCard";
 
 interface Props {
   children: ReactNode;
