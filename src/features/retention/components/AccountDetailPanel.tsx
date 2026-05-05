@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Quote, Sparkles, Send, Clock, TrendingUp, AlertTriangle, CheckCircle2, X, ChevronRight, History, AlertOctagon, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
