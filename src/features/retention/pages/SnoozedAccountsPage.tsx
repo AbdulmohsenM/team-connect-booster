@@ -52,7 +52,7 @@ export default function SnoozedAccountsPage() {
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Default snooze</p>
-            <p className="text-2xl font-semibold mt-1">48h</p>
+            <p className="text-2xl font-semibold mt-1">{preferences.defaultSnoozeHours}h</p>
           </div>
         </div>
 
