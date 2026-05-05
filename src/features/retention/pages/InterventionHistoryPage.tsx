@@ -20,7 +20,7 @@ type ChannelFilter = "all" | Channel;
 
 /** Intervention History page — filterable audit log of every sent intervention. */
 export default function InterventionHistoryPage() {
-  const { logs } = useRetention();
+  const { logs, loading } = useRetention();
   const [status, setStatus] = useState<StatusFilter>("all");
   const [channel, setChannel] = useState<ChannelFilter>("all");
   const [query, setQuery] = useState("");
