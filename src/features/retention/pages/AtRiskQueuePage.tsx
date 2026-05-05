@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Navigate as RouterNavigate } from "react-router-dom";
-import { Bell, Search, Filter } from "lucide-react";
+import { Link, useNavigate, Navigate as RouterNavigate } from "react-router-dom";
+import { Bell, Search, Filter, Inbox, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRetention } from "../state/RetentionContext";
 import { useAccountQueue, useInterventionProgress, type QueueFilter } from "../hooks/useAccountQueue";
@@ -9,6 +10,7 @@ import { useDetailLoading } from "../hooks/useDetailLoading";
 import { AccountRow } from "../components/AccountRow";
 import { AccountDetailPanel } from "../components/AccountDetailPanel";
 import { AccountDetailPanelSkeleton } from "../components/AccountDetailPanelSkeleton";
+import { AccountRowSkeleton } from "../components/Skeletons";
 import { formatRelative } from "../utils/time";
 import { useSession } from "@/features/auth/SessionProvider";
 
