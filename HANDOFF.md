@@ -130,3 +130,31 @@ All types in `src/features/retention/data/types.ts`.
 3. **Auth** — replace the hard-coded `"Jordan Kim"` with the session user.
 4. **Real delivery adapters** per channel (transactional email, Slack app, in-app pubsub).
 5. **Risk model** — replace seed `riskScore` with a real signal pipeline; keep `Signal[]` as the explainability contract.
+
+---
+
+## Known Gaps
+
+Things that are not production-ready and need real implementation before launch.
+
+### Auth — currently in demo-bypass mode
+- `SessionProvider` short-circuits to a hard-coded `"Jordan Kim"` demo session (`DEMO_USER_ID`, `DEMO_EMAIL`) stored in `localStorage` under `plansmith-demo-session`. **No real Supabase signin/signup runs.** This was added to work around the issues below and must be removed before shipping.
+- `AuthPage` validation, "Forgot password" flow, and `ResetPasswordPage` are UI-only — they show toasts but do not call Supabase. Wire them to `supabase.auth.signInWithPassword`, `signUp`, and `resetPasswordForEmail` once the gaps below are resolved.
+- Role badge in `AppShell` is hard-coded to `csm`. Replace with a lookup against a `user_roles` table (see user-roles guidance) once auth is real.
+
+### Supabase auth issues hit during development
+- **Email rate limit exceeded.** Repeated signup/signin attempts against the default Supabase SMTP tripped `over_email_send_rate_limit`, blocking further auth calls for the whole project. Mitigation before re-enabling real auth:
+  - Configure a real SMTP provider (Resend/Postmark/SES) in Auth → SMTP settings instead of the shared default.
+  - Disable "Confirm email" for the demo tenant, or auto-confirm via `configure_auth`, so signin doesn't trigger an email per attempt.
+  - Add client-side throttling on the AuthPage submit handler (debounce + disable button while in flight) to avoid hammering the endpoint.
+- **No graceful 429 handling.** The current AuthPage surfaces the raw Supabase error. When real auth is restored, detect `status === 429` / `over_email_send_rate_limit` and render a friendly "Too many attempts, try again in a few minutes" alert with a cooldown timer.
+
+### Connection-lost / offline handling — partial
+- `OfflineBanner` covers the *browser-level* offline event (`navigator.onLine`) and shows a retry pill. **It does not cover server-reachable-but-failing cases**: Supabase 5xx, DNS failures while `onLine === true`, or hung requests. These currently bubble up as generic errors.
+- `RetentionContext` has a `reload()` + `WorkspaceErrorCard`, but individual mutations (`intervene`, `snooze`, `unsnooze`) do not retry on transient network errors — they fail once and toast. Add retry-with-backoff and a "queued, will retry when online" state for in-flight mutations made while offline.
+- Realtime subscriptions (none yet) will need their own reconnect/backoff strategy when added.
+
+### Other known gaps
+- All retention data (`accounts`, `signals`, `actions`, `logs`, `snoozes`) is still seed/in-memory — see the Mocked vs. Real table above. Lost on reload.
+- `intervene()` simulates a 12% failure rate locally; no real delivery adapter exists for any channel.
+- No RLS policies are enforced yet because the tables aren't created. When Supabase tables land, follow the per-user isolation rules in the original brief (logs/snoozes team-visible but sender-only writable; `user_preferences` strictly per-user).
