@@ -17,7 +17,8 @@ import { formatRelative } from "../utils/time";
  */
 export default function AtRiskQueuePage() {
   const navigate = useNavigate();
-  const { accounts, intervened, snoozed, logs, intervene, snooze, hideAll, loading, accountsUpdatedAt } = useRetention();
+  const { accounts, intervened, snoozed, logs, notes, riskEvents, preferences, intervene, snooze, hideAll, loading, accountsUpdatedAt } = useRetention();
+  const { displayName } = useSession();
 
   const [filter, setFilter] = useState<QueueFilter>("needs-action");
   const { visible, counts, needsAction } = useAccountQueue(filter);
