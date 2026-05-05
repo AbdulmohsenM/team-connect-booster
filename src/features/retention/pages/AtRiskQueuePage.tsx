@@ -116,7 +116,8 @@ export default function AtRiskQueuePage() {
       {/* Queue */}
       <section className="w-[440px] shrink-0 border-r border-border flex flex-col bg-muted/30">
         <header className="px-6 pt-6 pb-4 bg-background border-b border-border">
-          <div className="flex items-center justify-between mb-1">
+          <OnboardingBanner />
+          <div className="flex items-center justify-between mb-1 mt-4">
             <h1 className="text-lg font-semibold">At-risk accounts</h1>
             <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"><Bell className="size-4" /></button>
           </div>
